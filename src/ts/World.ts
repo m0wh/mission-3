@@ -4,7 +4,7 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass'
 
 export default class World {
   public scene = new THREE.Scene()
-  public camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 100)
+  public camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100)
   private renderer = new THREE.WebGLRenderer({ antialias: true })
   private onUpdate: (time: number, context: any) => void
   private onInit: (context: any) => void

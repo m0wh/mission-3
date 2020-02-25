@@ -29,7 +29,7 @@ const world = new World({
   onInit: ({ scene, camera, renderer, composer }) => {
     renderer.toneMapping = THREE.LinearToneMapping
 
-    camera.position.y = 3
+    camera.position.y = 1.5
     camera.position.z = 10
     camera.lookAt(cameraLookingAt)
 
@@ -40,14 +40,14 @@ const world = new World({
     composer.addPass(grainFx)
 
     scene.background = new THREE.Color(0xc9cdcc)
-    scene.fog = new THREE.FogExp2(0xc9cdcc, 0.1)
+    scene.fog = new THREE.FogExp2(0xc9cdcc, 0.07)
   },
   onUpdate: (time, { camera }) => {
     // eslint-disable-next-line dot-notation
     grainFx.uniforms['amount'].value = time % 1000
     cameraLookingAt.set(
       lerp(cameraLookingAt.x, mouse.x, 0.05),
-      lerp(cameraLookingAt.y, 2 - mouse.y, 0.05),
+      lerp(cameraLookingAt.y, 1 - mouse.y, 0.05),
       7
     )
     camera.lookAt(cameraLookingAt)

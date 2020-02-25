@@ -15,7 +15,7 @@ export default function createTerrain () {
   geo.computeFaceNormals()
   geo.computeVertexNormals()
 
-  const mat = new THREE.MeshBasicMaterial({ color: 0x050505 })
+  const mat = new THREE.MeshBasicMaterial({ color: 0x020202 })
   const terrain = new THREE.Mesh(geo, mat)
   terrain.rotation.x = -Math.PI / 2
 
