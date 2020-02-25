@@ -1,4 +1,4 @@
-# MISSION-3
+# MISSION 3
 
 > Web experience for Paul Soulhiard's [MISSION 3](https://snd.sc/pslhrd/sets/mission-3) Album
 
