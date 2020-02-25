@@ -4,10 +4,11 @@ import SimplexNoise from 'simplex-noise'
 const simplex = new SimplexNoise()
 
 export default function createTerrain () {
-  const geo = new THREE.PlaneGeometry(100, 100, 100, 100)
+  const geo = new THREE.PlaneGeometry(50, 50, 100, 100)
 
   geo.vertices.forEach(vertex => {
-    const noise = simplex.noise2D(vertex.x / 10, vertex.y / 10)
+    let noise = simplex.noise2D(vertex.x / 10, vertex.y / 10)
+    noise += simplex.noise2D(vertex.x / 2, vertex.y / 2) / 5
     vertex.z = noise
   })
 
