@@ -1,7 +1,6 @@
 import * as THREE from 'three'
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass'
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass'
-import { GlitchPass } from 'three/examples/jsm/postprocessing/GlitchPass'
 import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader'
 import World from './ts/World'
 import createTerrain from './ts/terrain'
@@ -13,8 +12,7 @@ import grainFragmentShader from './glsl/grain.frag'
 const terrain = createTerrain()
 
 // post-fx
-const bloomFx = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.1, 0, 0.1)
-const glitchFx = new GlitchPass()
+const bloomFx = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.1, 0.5, 0)
 const grainFx = new ShaderPass({
   uniforms: {
     tDiffuse: { value: null },
@@ -38,7 +36,6 @@ const world = new World({
     scene.add(terrain)
 
     composer.addPass(bloomFx)
-    composer.addPass(glitchFx)
     composer.addPass(fxaa)
     composer.addPass(grainFx)
 
