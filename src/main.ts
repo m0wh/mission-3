@@ -5,6 +5,7 @@ import { GlitchPass } from 'three/examples/jsm/postprocessing/GlitchPass'
 import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader'
 import World from './ts/World'
 import createTerrain from './ts/terrain'
+import { mouse, lerp } from './ts/utils'
 import grainVertexShader from './glsl/grain.vert'
 import grainFragmentShader from './glsl/grain.frag'
 
@@ -24,13 +25,15 @@ const grainFx = new ShaderPass({
 })
 const fxaa = new ShaderPass(FXAAShader)
 
+const cameraLookingAt = new THREE.Vector3(mouse.x, 3 - mouse.y, 7)
+
 const world = new World({
   onInit: ({ scene, camera, renderer, composer }) => {
     renderer.toneMapping = THREE.LinearToneMapping
 
     camera.position.y = 3
     camera.position.z = 10
-    camera.lookAt(0, 3, 0)
+    camera.lookAt(cameraLookingAt)
 
     scene.add(terrain)
 
@@ -42,9 +45,15 @@ const world = new World({
     scene.background = new THREE.Color(0xc9cdcc)
     scene.fog = new THREE.FogExp2(0xc9cdcc, 0.1)
   },
-  onUpdate: (time, { scene, camera, renderer, composer }) => {
+  onUpdate: (time, { camera }) => {
     // eslint-disable-next-line dot-notation
     grainFx.uniforms['amount'].value = time % 1000
+    cameraLookingAt.set(
+      lerp(cameraLookingAt.x, mouse.x, 0.05),
+      lerp(cameraLookingAt.y, 2 - mouse.y, 0.05),
+      7
+    )
+    camera.lookAt(cameraLookingAt)
   }
 })
 
