@@ -15,8 +15,8 @@ export default class World {
     this.renderer.setSize(window.innerWidth, window.innerHeight)
     document.body.appendChild(this.renderer.domElement)
     this.composer.addPass(new RenderPass(this.scene, this.camera))
-    this.onUpdate = onUpdate
     this.onInit = onInit
+    this.onUpdate = onUpdate
   }
 
   init (): void {
