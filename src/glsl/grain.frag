@@ -8,9 +8,11 @@ float random (vec2 p) {
 }
 
 void main () {
-  vec4 color = texture2D( tDiffuse, vUv );
+  vec4 color = texture2D(tDiffuse, vUv);
   vec2 uvRandom = vUv;
   uvRandom.y *= random(vec2(uvRandom.y,amount));
-  color.rgb += random(uvRandom)*0.10;
-  gl_FragColor = vec4( color  );
+  color.r += random(uvRandom) * 0.1;
+  color.g += random(uvRandom) * 0.1;
+  color.b += random(uvRandom) * 0.1;
+  gl_FragColor = vec4(color);
 }

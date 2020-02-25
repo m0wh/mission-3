@@ -4,17 +4,20 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass'
 
 export default class World {
   public scene = new THREE.Scene()
-  public camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
-  private renderer = new THREE.WebGLRenderer()
+  public camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 100)
+  private renderer = new THREE.WebGLRenderer({ antialias: true })
   private onUpdate: (time: number) => void
   private onInit: (context: any) => void
   private startTime: number
   private composer = new EffectComposer(this.renderer)
 
   constructor ({ onInit = (context: any): void => {}, onUpdate = (time: number): void => {} }) {
+    this.renderer.setPixelRatio(window.devicePixelRatio)
     this.renderer.setSize(window.innerWidth, window.innerHeight)
     document.body.appendChild(this.renderer.domElement)
     this.composer.addPass(new RenderPass(this.scene, this.camera))
+    this.composer.setSize(window.innerWidth, window.innerHeight)
+
     this.onInit = onInit
     this.onUpdate = onUpdate
   }
@@ -32,8 +35,9 @@ export default class World {
 
   animate (): void {
     const time = Date.now() - this.startTime
-    requestAnimationFrame(this.animate.bind(this))
     this.onUpdate(time)
+
+    requestAnimationFrame(this.animate.bind(this))
     this.composer.render()
   }
 }
