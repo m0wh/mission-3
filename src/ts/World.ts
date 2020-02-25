@@ -1,32 +1,39 @@
 import * as THREE from 'three'
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer'
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass'
 
 export default class World {
   public scene = new THREE.Scene()
   public camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
   private renderer = new THREE.WebGLRenderer()
   private onUpdate: (time: number) => void
-  private onInit: () => void
+  private onInit: (context: any) => void
   private startTime: number
+  private composer = new EffectComposer(this.renderer)
 
-  constructor ({ onInit = (): void => {}, onUpdate = (time: number): void => {} }) {
+  constructor ({ onInit = (context: any): void => {}, onUpdate = (time: number): void => {} }) {
     this.renderer.setSize(window.innerWidth, window.innerHeight)
     document.body.appendChild(this.renderer.domElement)
+    this.composer.addPass(new RenderPass(this.scene, this.camera))
     this.onUpdate = onUpdate
     this.onInit = onInit
-    this.camera.position.z = 10
-    this.camera.lookAt(0, 0, 0)
   }
 
   init (): void {
     this.startTime = Date.now()
     this.animate()
-    this.onInit()
+    this.onInit({
+      scene: this.scene,
+      camera: this.camera,
+      renderer: this.renderer,
+      composer: this.composer
+    })
   }
 
   animate (): void {
     const time = Date.now() - this.startTime
     requestAnimationFrame(this.animate.bind(this))
     this.onUpdate(time)
-    this.renderer.render(this.scene, this.camera)
+    this.composer.render()
   }
 }
