@@ -1,7 +1,7 @@
 {
-  "name": "frontend-boilerplate-ts",
+  "name": "mission-3",
   "version": "1.0.0",
-  "description": "Parcel, ES7, Sass, ESLint, Github pages starter template",
+  "description": "Web experience for Paul Soulhiard — MISSION 3 Album (https://snd.sc/pslhrd/sets/mission-3)",
   "main": "index.html",
   "scripts": {
     "start": "parcel index.html --open",
@@ -9,8 +9,8 @@
     "predeploy": "yarn build",
     "deploy": "gh-pages -d dist"
   },
-  "repository": "git@github.com:m0wh/frontend-boilerplate-ts.git",
-  "author": "Malo Widerspach <malo@rezo-zero.com>",
+  "repository": "git@github.com:m0wh/mission-3.git",
+  "author": "Malo Widerspach <malo.dewiderspach@gmail.com>",
   "license": "MIT",
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^2.20.0",
