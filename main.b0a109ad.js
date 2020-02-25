@@ -35975,171 +35975,7 @@ UnrealBloomPass.prototype = Object.assign(Object.create(_Pass.Pass.prototype), {
 });
 UnrealBloomPass.BlurDirectionX = new _threeModule.Vector2(1.0, 0.0);
 UnrealBloomPass.BlurDirectionY = new _threeModule.Vector2(0.0, 1.0);
-},{"../../../build/three.module.js":"node_modules/three/build/three.module.js","../postprocessing/Pass.js":"node_modules/three/examples/jsm/postprocessing/Pass.js","../shaders/CopyShader.js":"node_modules/three/examples/jsm/shaders/CopyShader.js","../shaders/LuminosityHighPassShader.js":"node_modules/three/examples/jsm/shaders/LuminosityHighPassShader.js"}],"node_modules/three/examples/jsm/shaders/DigitalGlitch.js":[function(require,module,exports) {
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.DigitalGlitch = void 0;
-
-/**
- * @author felixturner / http://airtight.cc/
- *
- * RGB Shift Shader
- * Shifts red and blue channels from center in opposite directions
- * Ported from http://kriss.cx/tom/2009/05/rgb-shift/
- * by Tom Butterworth / http://kriss.cx/tom/
- *
- * amount: shift distance (1 is width of input)
- * angle: shift angle in radians
- */
-var DigitalGlitch = {
-  uniforms: {
-    "tDiffuse": {
-      value: null
-    },
-    //diffuse texture
-    "tDisp": {
-      value: null
-    },
-    //displacement texture for digital glitch squares
-    "byp": {
-      value: 0
-    },
-    //apply the glitch ?
-    "amount": {
-      value: 0.08
-    },
-    "angle": {
-      value: 0.02
-    },
-    "seed": {
-      value: 0.02
-    },
-    "seed_x": {
-      value: 0.02
-    },
-    //-1,1
-    "seed_y": {
-      value: 0.02
-    },
-    //-1,1
-    "distortion_x": {
-      value: 0.5
-    },
-    "distortion_y": {
-      value: 0.6
-    },
-    "col_s": {
-      value: 0.05
-    }
-  },
-  vertexShader: ["varying vec2 vUv;", "void main() {", "	vUv = uv;", "	gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );", "}"].join("\n"),
-  fragmentShader: ["uniform int byp;", //should we apply the glitch ?
-  "uniform sampler2D tDiffuse;", "uniform sampler2D tDisp;", "uniform float amount;", "uniform float angle;", "uniform float seed;", "uniform float seed_x;", "uniform float seed_y;", "uniform float distortion_x;", "uniform float distortion_y;", "uniform float col_s;", "varying vec2 vUv;", "float rand(vec2 co){", "	return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);", "}", "void main() {", "	if(byp<1) {", "		vec2 p = vUv;", "		float xs = floor(gl_FragCoord.x / 0.5);", "		float ys = floor(gl_FragCoord.y / 0.5);", //based on staffantans glitch shader for unity https://github.com/staffantan/unityglitch
-  "		vec4 normal = texture2D (tDisp, p*seed*seed);", "		if(p.y<distortion_x+col_s && p.y>distortion_x-col_s*seed) {", "			if(seed_x>0.){", "				p.y = 1. - (p.y + distortion_y);", "			}", "			else {", "				p.y = distortion_y;", "			}", "		}", "		if(p.x<distortion_y+col_s && p.x>distortion_y-col_s*seed) {", "			if(seed_y>0.){", "				p.x=distortion_x;", "			}", "			else {", "				p.x = 1. - (p.x + distortion_x);", "			}", "		}", "		p.x+=normal.x*seed_x*(seed/5.);", "		p.y+=normal.y*seed_y*(seed/5.);", //base from RGB shift shader
-  "		vec2 offset = amount * vec2( cos(angle), sin(angle));", "		vec4 cr = texture2D(tDiffuse, p + offset);", "		vec4 cga = texture2D(tDiffuse, p);", "		vec4 cb = texture2D(tDiffuse, p - offset);", "		gl_FragColor = vec4(cr.r, cga.g, cb.b, cga.a);", //add noise
-  "		vec4 snow = 200.*amount*vec4(rand(vec2(xs * seed,ys * seed*50.))*0.2);", "		gl_FragColor = gl_FragColor+ snow;", "	}", "	else {", "		gl_FragColor=texture2D (tDiffuse, vUv);", "	}", "}"].join("\n")
-};
-exports.DigitalGlitch = DigitalGlitch;
-},{}],"node_modules/three/examples/jsm/postprocessing/GlitchPass.js":[function(require,module,exports) {
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.GlitchPass = void 0;
-
-var _threeModule = require("../../../build/three.module.js");
-
-var _Pass = require("../postprocessing/Pass.js");
-
-var _DigitalGlitch = require("../shaders/DigitalGlitch.js");
-
-/**
- * @author alteredq / http://alteredqualia.com/
- */
-var GlitchPass = function (dt_size) {
-  _Pass.Pass.call(this);
-
-  if (_DigitalGlitch.DigitalGlitch === undefined) console.error("GlitchPass relies on DigitalGlitch");
-  var shader = _DigitalGlitch.DigitalGlitch;
-  this.uniforms = _threeModule.UniformsUtils.clone(shader.uniforms);
-  if (dt_size == undefined) dt_size = 64;
-  this.uniforms["tDisp"].value = this.generateHeightmap(dt_size);
-  this.material = new _threeModule.ShaderMaterial({
-    uniforms: this.uniforms,
-    vertexShader: shader.vertexShader,
-    fragmentShader: shader.fragmentShader
-  });
-  this.fsQuad = new _Pass.Pass.FullScreenQuad(this.material);
-  this.goWild = false;
-  this.curF = 0;
-  this.generateTrigger();
-};
-
-exports.GlitchPass = GlitchPass;
-GlitchPass.prototype = Object.assign(Object.create(_Pass.Pass.prototype), {
-  constructor: GlitchPass,
-  render: function (renderer, writeBuffer, readBuffer
-  /*, deltaTime, maskActive */
-  ) {
-    this.uniforms["tDiffuse"].value = readBuffer.texture;
-    this.uniforms['seed'].value = Math.random(); //default seeding
-
-    this.uniforms['byp'].value = 0;
-
-    if (this.curF % this.randX == 0 || this.goWild == true) {
-      this.uniforms['amount'].value = Math.random() / 30;
-      this.uniforms['angle'].value = _threeModule.MathUtils.randFloat(-Math.PI, Math.PI);
-      this.uniforms['seed_x'].value = _threeModule.MathUtils.randFloat(-1, 1);
-      this.uniforms['seed_y'].value = _threeModule.MathUtils.randFloat(-1, 1);
-      this.uniforms['distortion_x'].value = _threeModule.MathUtils.randFloat(0, 1);
-      this.uniforms['distortion_y'].value = _threeModule.MathUtils.randFloat(0, 1);
-      this.curF = 0;
-      this.generateTrigger();
-    } else if (this.curF % this.randX < this.randX / 5) {
-      this.uniforms['amount'].value = Math.random() / 90;
-      this.uniforms['angle'].value = _threeModule.MathUtils.randFloat(-Math.PI, Math.PI);
-      this.uniforms['distortion_x'].value = _threeModule.MathUtils.randFloat(0, 1);
-      this.uniforms['distortion_y'].value = _threeModule.MathUtils.randFloat(0, 1);
-      this.uniforms['seed_x'].value = _threeModule.MathUtils.randFloat(-0.3, 0.3);
-      this.uniforms['seed_y'].value = _threeModule.MathUtils.randFloat(-0.3, 0.3);
-    } else if (this.goWild == false) {
-      this.uniforms['byp'].value = 1;
-    }
-
-    this.curF++;
-
-    if (this.renderToScreen) {
-      renderer.setRenderTarget(null);
-      this.fsQuad.render(renderer);
-    } else {
-      renderer.setRenderTarget(writeBuffer);
-      if (this.clear) renderer.clear();
-      this.fsQuad.render(renderer);
-    }
-  },
-  generateTrigger: function () {
-    this.randX = _threeModule.MathUtils.randInt(120, 240);
-  },
-  generateHeightmap: function (dt_size) {
-    var data_arr = new Float32Array(dt_size * dt_size * 3);
-    var length = dt_size * dt_size;
-
-    for (var i = 0; i < length; i++) {
-      var val = _threeModule.MathUtils.randFloat(0, 1);
-
-      data_arr[i * 3 + 0] = val;
-      data_arr[i * 3 + 1] = val;
-      data_arr[i * 3 + 2] = val;
-    }
-
-    return new _threeModule.DataTexture(data_arr, dt_size, dt_size, _threeModule.RGBFormat, _threeModule.FloatType);
-  }
-});
-},{"../../../build/three.module.js":"node_modules/three/build/three.module.js","../postprocessing/Pass.js":"node_modules/three/examples/jsm/postprocessing/Pass.js","../shaders/DigitalGlitch.js":"node_modules/three/examples/jsm/shaders/DigitalGlitch.js"}],"node_modules/three/examples/jsm/shaders/FXAAShader.js":[function(require,module,exports) {
+},{"../../../build/three.module.js":"node_modules/three/build/three.module.js","../postprocessing/Pass.js":"node_modules/three/examples/jsm/postprocessing/Pass.js","../shaders/CopyShader.js":"node_modules/three/examples/jsm/shaders/CopyShader.js","../shaders/LuminosityHighPassShader.js":"node_modules/three/examples/jsm/shaders/LuminosityHighPassShader.js"}],"node_modules/three/examples/jsm/shaders/FXAAShader.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -37192,8 +37028,6 @@ var ShaderPass_1 = require("three/examples/jsm/postprocessing/ShaderPass");
 
 var UnrealBloomPass_1 = require("three/examples/jsm/postprocessing/UnrealBloomPass");
 
-var GlitchPass_1 = require("three/examples/jsm/postprocessing/GlitchPass");
-
 var FXAAShader_1 = require("three/examples/jsm/shaders/FXAAShader");
 
 var World_1 = __importDefault(require("./ts/World"));
@@ -37209,8 +37043,7 @@ var grain_frag_1 = __importDefault(require("./glsl/grain.frag")); // Add terrain
 
 var terrain = terrain_1.default(); // post-fx
 
-var bloomFx = new UnrealBloomPass_1.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.1, 0, 0.1);
-var glitchFx = new GlitchPass_1.GlitchPass();
+var bloomFx = new UnrealBloomPass_1.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.1, 0.5, 0);
 var grainFx = new ShaderPass_1.ShaderPass({
   uniforms: {
     tDiffuse: {
@@ -37237,7 +37070,6 @@ var world = new World_1.default({
     camera.lookAt(cameraLookingAt);
     scene.add(terrain);
     composer.addPass(bloomFx);
-    composer.addPass(glitchFx);
     composer.addPass(fxaa);
     composer.addPass(grainFx);
     scene.background = new THREE.Color(0xc9cdcc);
@@ -37252,7 +37084,7 @@ var world = new World_1.default({
   }
 });
 world.init();
-},{"three":"node_modules/three/build/three.module.js","three/examples/jsm/postprocessing/ShaderPass":"node_modules/three/examples/jsm/postprocessing/ShaderPass.js","three/examples/jsm/postprocessing/UnrealBloomPass":"node_modules/three/examples/jsm/postprocessing/UnrealBloomPass.js","three/examples/jsm/postprocessing/GlitchPass":"node_modules/three/examples/jsm/postprocessing/GlitchPass.js","three/examples/jsm/shaders/FXAAShader":"node_modules/three/examples/jsm/shaders/FXAAShader.js","./ts/World":"src/ts/World.ts","./ts/terrain":"src/ts/terrain.ts","./ts/utils":"src/ts/utils.ts","./glsl/grain.vert":"src/glsl/grain.vert","./glsl/grain.frag":"src/glsl/grain.frag"}],"node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
+},{"three":"node_modules/three/build/three.module.js","three/examples/jsm/postprocessing/ShaderPass":"node_modules/three/examples/jsm/postprocessing/ShaderPass.js","three/examples/jsm/postprocessing/UnrealBloomPass":"node_modules/three/examples/jsm/postprocessing/UnrealBloomPass.js","three/examples/jsm/shaders/FXAAShader":"node_modules/three/examples/jsm/shaders/FXAAShader.js","./ts/World":"src/ts/World.ts","./ts/terrain":"src/ts/terrain.ts","./ts/utils":"src/ts/utils.ts","./glsl/grain.vert":"src/glsl/grain.vert","./glsl/grain.frag":"src/glsl/grain.frag"}],"node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
 var global = arguments[3];
 var OVERLAY_ID = '__parcel__error__overlay__';
 var OldModule = module.bundle.Module;
@@ -37280,7 +37112,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "51420" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "55381" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
