@@ -35593,7 +35593,553 @@ var CopyShader = {
   fragmentShader: ["uniform float opacity;", "uniform sampler2D tDiffuse;", "varying vec2 vUv;", "void main() {", "	vec4 texel = texture2D( tDiffuse, vUv );", "	gl_FragColor = opacity * texel;", "}"].join("\n")
 };
 exports.CopyShader = CopyShader;
-},{}],"node_modules/three/examples/jsm/postprocessing/MaskPass.js":[function(require,module,exports) {
+},{}],"node_modules/three/examples/jsm/shaders/LuminosityHighPassShader.js":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.LuminosityHighPassShader = void 0;
+
+var _threeModule = require("../../../build/three.module.js");
+
+/**
+ * @author bhouston / http://clara.io/
+ *
+ * Luminosity
+ * http://en.wikipedia.org/wiki/Luminosity
+ */
+var LuminosityHighPassShader = {
+  shaderID: "luminosityHighPass",
+  uniforms: {
+    "tDiffuse": {
+      value: null
+    },
+    "luminosityThreshold": {
+      value: 1.0
+    },
+    "smoothWidth": {
+      value: 1.0
+    },
+    "defaultColor": {
+      value: new _threeModule.Color(0x000000)
+    },
+    "defaultOpacity": {
+      value: 0.0
+    }
+  },
+  vertexShader: ["varying vec2 vUv;", "void main() {", "	vUv = uv;", "	gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );", "}"].join("\n"),
+  fragmentShader: ["uniform sampler2D tDiffuse;", "uniform vec3 defaultColor;", "uniform float defaultOpacity;", "uniform float luminosityThreshold;", "uniform float smoothWidth;", "varying vec2 vUv;", "void main() {", "	vec4 texel = texture2D( tDiffuse, vUv );", "	vec3 luma = vec3( 0.299, 0.587, 0.114 );", "	float v = dot( texel.xyz, luma );", "	vec4 outputColor = vec4( defaultColor.rgb, defaultOpacity );", "	float alpha = smoothstep( luminosityThreshold, luminosityThreshold + smoothWidth, v );", "	gl_FragColor = mix( outputColor, texel, alpha );", "}"].join("\n")
+};
+exports.LuminosityHighPassShader = LuminosityHighPassShader;
+},{"../../../build/three.module.js":"node_modules/three/build/three.module.js"}],"node_modules/three/examples/jsm/postprocessing/UnrealBloomPass.js":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.UnrealBloomPass = void 0;
+
+var _threeModule = require("../../../build/three.module.js");
+
+var _Pass = require("../postprocessing/Pass.js");
+
+var _CopyShader = require("../shaders/CopyShader.js");
+
+var _LuminosityHighPassShader = require("../shaders/LuminosityHighPassShader.js");
+
+/**
+ * @author spidersharma / http://eduperiment.com/
+ */
+
+/**
+ * UnrealBloomPass is inspired by the bloom pass of Unreal Engine. It creates a
+ * mip map chain of bloom textures and blurs them with different radii. Because
+ * of the weighted combination of mips, and because larger blurs are done on
+ * higher mips, this effect provides good quality and performance.
+ *
+ * Reference:
+ * - https://docs.unrealengine.com/latest/INT/Engine/Rendering/PostProcessEffects/Bloom/
+ */
+var UnrealBloomPass = function (resolution, strength, radius, threshold) {
+  _Pass.Pass.call(this);
+
+  this.strength = strength !== undefined ? strength : 1;
+  this.radius = radius;
+  this.threshold = threshold;
+  this.resolution = resolution !== undefined ? new _threeModule.Vector2(resolution.x, resolution.y) : new _threeModule.Vector2(256, 256); // create color only once here, reuse it later inside the render function
+
+  this.clearColor = new _threeModule.Color(0, 0, 0); // render targets
+
+  var pars = {
+    minFilter: _threeModule.LinearFilter,
+    magFilter: _threeModule.LinearFilter,
+    format: _threeModule.RGBAFormat
+  };
+  this.renderTargetsHorizontal = [];
+  this.renderTargetsVertical = [];
+  this.nMips = 5;
+  var resx = Math.round(this.resolution.x / 2);
+  var resy = Math.round(this.resolution.y / 2);
+  this.renderTargetBright = new _threeModule.WebGLRenderTarget(resx, resy, pars);
+  this.renderTargetBright.texture.name = "UnrealBloomPass.bright";
+  this.renderTargetBright.texture.generateMipmaps = false;
+
+  for (var i = 0; i < this.nMips; i++) {
+    var renderTargetHorizonal = new _threeModule.WebGLRenderTarget(resx, resy, pars);
+    renderTargetHorizonal.texture.name = "UnrealBloomPass.h" + i;
+    renderTargetHorizonal.texture.generateMipmaps = false;
+    this.renderTargetsHorizontal.push(renderTargetHorizonal);
+    var renderTargetVertical = new _threeModule.WebGLRenderTarget(resx, resy, pars);
+    renderTargetVertical.texture.name = "UnrealBloomPass.v" + i;
+    renderTargetVertical.texture.generateMipmaps = false;
+    this.renderTargetsVertical.push(renderTargetVertical);
+    resx = Math.round(resx / 2);
+    resy = Math.round(resy / 2);
+  } // luminosity high pass material
+
+
+  if (_LuminosityHighPassShader.LuminosityHighPassShader === undefined) console.error("UnrealBloomPass relies on LuminosityHighPassShader");
+  var highPassShader = _LuminosityHighPassShader.LuminosityHighPassShader;
+  this.highPassUniforms = _threeModule.UniformsUtils.clone(highPassShader.uniforms);
+  this.highPassUniforms["luminosityThreshold"].value = threshold;
+  this.highPassUniforms["smoothWidth"].value = 0.01;
+  this.materialHighPassFilter = new _threeModule.ShaderMaterial({
+    uniforms: this.highPassUniforms,
+    vertexShader: highPassShader.vertexShader,
+    fragmentShader: highPassShader.fragmentShader,
+    defines: {}
+  }); // Gaussian Blur Materials
+
+  this.separableBlurMaterials = [];
+  var kernelSizeArray = [3, 5, 7, 9, 11];
+  var resx = Math.round(this.resolution.x / 2);
+  var resy = Math.round(this.resolution.y / 2);
+
+  for (var i = 0; i < this.nMips; i++) {
+    this.separableBlurMaterials.push(this.getSeperableBlurMaterial(kernelSizeArray[i]));
+    this.separableBlurMaterials[i].uniforms["texSize"].value = new _threeModule.Vector2(resx, resy);
+    resx = Math.round(resx / 2);
+    resy = Math.round(resy / 2);
+  } // Composite material
+
+
+  this.compositeMaterial = this.getCompositeMaterial(this.nMips);
+  this.compositeMaterial.uniforms["blurTexture1"].value = this.renderTargetsVertical[0].texture;
+  this.compositeMaterial.uniforms["blurTexture2"].value = this.renderTargetsVertical[1].texture;
+  this.compositeMaterial.uniforms["blurTexture3"].value = this.renderTargetsVertical[2].texture;
+  this.compositeMaterial.uniforms["blurTexture4"].value = this.renderTargetsVertical[3].texture;
+  this.compositeMaterial.uniforms["blurTexture5"].value = this.renderTargetsVertical[4].texture;
+  this.compositeMaterial.uniforms["bloomStrength"].value = strength;
+  this.compositeMaterial.uniforms["bloomRadius"].value = 0.1;
+  this.compositeMaterial.needsUpdate = true;
+  var bloomFactors = [1.0, 0.8, 0.6, 0.4, 0.2];
+  this.compositeMaterial.uniforms["bloomFactors"].value = bloomFactors;
+  this.bloomTintColors = [new _threeModule.Vector3(1, 1, 1), new _threeModule.Vector3(1, 1, 1), new _threeModule.Vector3(1, 1, 1), new _threeModule.Vector3(1, 1, 1), new _threeModule.Vector3(1, 1, 1)];
+  this.compositeMaterial.uniforms["bloomTintColors"].value = this.bloomTintColors; // copy material
+
+  if (_CopyShader.CopyShader === undefined) {
+    console.error("UnrealBloomPass relies on CopyShader");
+  }
+
+  var copyShader = _CopyShader.CopyShader;
+  this.copyUniforms = _threeModule.UniformsUtils.clone(copyShader.uniforms);
+  this.copyUniforms["opacity"].value = 1.0;
+  this.materialCopy = new _threeModule.ShaderMaterial({
+    uniforms: this.copyUniforms,
+    vertexShader: copyShader.vertexShader,
+    fragmentShader: copyShader.fragmentShader,
+    blending: _threeModule.AdditiveBlending,
+    depthTest: false,
+    depthWrite: false,
+    transparent: true
+  });
+  this.enabled = true;
+  this.needsSwap = false;
+  this.oldClearColor = new _threeModule.Color();
+  this.oldClearAlpha = 1;
+  this.basic = new _threeModule.MeshBasicMaterial();
+  this.fsQuad = new _Pass.Pass.FullScreenQuad(null);
+};
+
+exports.UnrealBloomPass = UnrealBloomPass;
+UnrealBloomPass.prototype = Object.assign(Object.create(_Pass.Pass.prototype), {
+  constructor: UnrealBloomPass,
+  dispose: function () {
+    for (var i = 0; i < this.renderTargetsHorizontal.length; i++) {
+      this.renderTargetsHorizontal[i].dispose();
+    }
+
+    for (var i = 0; i < this.renderTargetsVertical.length; i++) {
+      this.renderTargetsVertical[i].dispose();
+    }
+
+    this.renderTargetBright.dispose();
+  },
+  setSize: function (width, height) {
+    var resx = Math.round(width / 2);
+    var resy = Math.round(height / 2);
+    this.renderTargetBright.setSize(resx, resy);
+
+    for (var i = 0; i < this.nMips; i++) {
+      this.renderTargetsHorizontal[i].setSize(resx, resy);
+      this.renderTargetsVertical[i].setSize(resx, resy);
+      this.separableBlurMaterials[i].uniforms["texSize"].value = new _threeModule.Vector2(resx, resy);
+      resx = Math.round(resx / 2);
+      resy = Math.round(resy / 2);
+    }
+  },
+  render: function (renderer, writeBuffer, readBuffer, deltaTime, maskActive) {
+    this.oldClearColor.copy(renderer.getClearColor());
+    this.oldClearAlpha = renderer.getClearAlpha();
+    var oldAutoClear = renderer.autoClear;
+    renderer.autoClear = false;
+    renderer.setClearColor(this.clearColor, 0);
+    if (maskActive) renderer.state.buffers.stencil.setTest(false); // Render input to screen
+
+    if (this.renderToScreen) {
+      this.fsQuad.material = this.basic;
+      this.basic.map = readBuffer.texture;
+      renderer.setRenderTarget(null);
+      renderer.clear();
+      this.fsQuad.render(renderer);
+    } // 1. Extract Bright Areas
+
+
+    this.highPassUniforms["tDiffuse"].value = readBuffer.texture;
+    this.highPassUniforms["luminosityThreshold"].value = this.threshold;
+    this.fsQuad.material = this.materialHighPassFilter;
+    renderer.setRenderTarget(this.renderTargetBright);
+    renderer.clear();
+    this.fsQuad.render(renderer); // 2. Blur All the mips progressively
+
+    var inputRenderTarget = this.renderTargetBright;
+
+    for (var i = 0; i < this.nMips; i++) {
+      this.fsQuad.material = this.separableBlurMaterials[i];
+      this.separableBlurMaterials[i].uniforms["colorTexture"].value = inputRenderTarget.texture;
+      this.separableBlurMaterials[i].uniforms["direction"].value = UnrealBloomPass.BlurDirectionX;
+      renderer.setRenderTarget(this.renderTargetsHorizontal[i]);
+      renderer.clear();
+      this.fsQuad.render(renderer);
+      this.separableBlurMaterials[i].uniforms["colorTexture"].value = this.renderTargetsHorizontal[i].texture;
+      this.separableBlurMaterials[i].uniforms["direction"].value = UnrealBloomPass.BlurDirectionY;
+      renderer.setRenderTarget(this.renderTargetsVertical[i]);
+      renderer.clear();
+      this.fsQuad.render(renderer);
+      inputRenderTarget = this.renderTargetsVertical[i];
+    } // Composite All the mips
+
+
+    this.fsQuad.material = this.compositeMaterial;
+    this.compositeMaterial.uniforms["bloomStrength"].value = this.strength;
+    this.compositeMaterial.uniforms["bloomRadius"].value = this.radius;
+    this.compositeMaterial.uniforms["bloomTintColors"].value = this.bloomTintColors;
+    renderer.setRenderTarget(this.renderTargetsHorizontal[0]);
+    renderer.clear();
+    this.fsQuad.render(renderer); // Blend it additively over the input texture
+
+    this.fsQuad.material = this.materialCopy;
+    this.copyUniforms["tDiffuse"].value = this.renderTargetsHorizontal[0].texture;
+    if (maskActive) renderer.state.buffers.stencil.setTest(true);
+
+    if (this.renderToScreen) {
+      renderer.setRenderTarget(null);
+      this.fsQuad.render(renderer);
+    } else {
+      renderer.setRenderTarget(readBuffer);
+      this.fsQuad.render(renderer);
+    } // Restore renderer settings
+
+
+    renderer.setClearColor(this.oldClearColor, this.oldClearAlpha);
+    renderer.autoClear = oldAutoClear;
+  },
+  getSeperableBlurMaterial: function (kernelRadius) {
+    return new _threeModule.ShaderMaterial({
+      defines: {
+        "KERNEL_RADIUS": kernelRadius,
+        "SIGMA": kernelRadius
+      },
+      uniforms: {
+        "colorTexture": {
+          value: null
+        },
+        "texSize": {
+          value: new _threeModule.Vector2(0.5, 0.5)
+        },
+        "direction": {
+          value: new _threeModule.Vector2(0.5, 0.5)
+        }
+      },
+      vertexShader: "varying vec2 vUv;\n\
+				void main() {\n\
+					vUv = uv;\n\
+					gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );\n\
+				}",
+      fragmentShader: "#include <common>\
+				varying vec2 vUv;\n\
+				uniform sampler2D colorTexture;\n\
+				uniform vec2 texSize;\
+				uniform vec2 direction;\
+				\
+				float gaussianPdf(in float x, in float sigma) {\
+					return 0.39894 * exp( -0.5 * x * x/( sigma * sigma))/sigma;\
+				}\
+				void main() {\n\
+					vec2 invSize = 1.0 / texSize;\
+					float fSigma = float(SIGMA);\
+					float weightSum = gaussianPdf(0.0, fSigma);\
+					vec3 diffuseSum = texture2D( colorTexture, vUv).rgb * weightSum;\
+					for( int i = 1; i < KERNEL_RADIUS; i ++ ) {\
+						float x = float(i);\
+						float w = gaussianPdf(x, fSigma);\
+						vec2 uvOffset = direction * invSize * x;\
+						vec3 sample1 = texture2D( colorTexture, vUv + uvOffset).rgb;\
+						vec3 sample2 = texture2D( colorTexture, vUv - uvOffset).rgb;\
+						diffuseSum += (sample1 + sample2) * w;\
+						weightSum += 2.0 * w;\
+					}\
+					gl_FragColor = vec4(diffuseSum/weightSum, 1.0);\n\
+				}"
+    });
+  },
+  getCompositeMaterial: function (nMips) {
+    return new _threeModule.ShaderMaterial({
+      defines: {
+        "NUM_MIPS": nMips
+      },
+      uniforms: {
+        "blurTexture1": {
+          value: null
+        },
+        "blurTexture2": {
+          value: null
+        },
+        "blurTexture3": {
+          value: null
+        },
+        "blurTexture4": {
+          value: null
+        },
+        "blurTexture5": {
+          value: null
+        },
+        "dirtTexture": {
+          value: null
+        },
+        "bloomStrength": {
+          value: 1.0
+        },
+        "bloomFactors": {
+          value: null
+        },
+        "bloomTintColors": {
+          value: null
+        },
+        "bloomRadius": {
+          value: 0.0
+        }
+      },
+      vertexShader: "varying vec2 vUv;\n\
+				void main() {\n\
+					vUv = uv;\n\
+					gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );\n\
+				}",
+      fragmentShader: "varying vec2 vUv;\
+				uniform sampler2D blurTexture1;\
+				uniform sampler2D blurTexture2;\
+				uniform sampler2D blurTexture3;\
+				uniform sampler2D blurTexture4;\
+				uniform sampler2D blurTexture5;\
+				uniform sampler2D dirtTexture;\
+				uniform float bloomStrength;\
+				uniform float bloomRadius;\
+				uniform float bloomFactors[NUM_MIPS];\
+				uniform vec3 bloomTintColors[NUM_MIPS];\
+				\
+				float lerpBloomFactor(const in float factor) { \
+					float mirrorFactor = 1.2 - factor;\
+					return mix(factor, mirrorFactor, bloomRadius);\
+				}\
+				\
+				void main() {\
+					gl_FragColor = bloomStrength * ( lerpBloomFactor(bloomFactors[0]) * vec4(bloomTintColors[0], 1.0) * texture2D(blurTexture1, vUv) + \
+													 lerpBloomFactor(bloomFactors[1]) * vec4(bloomTintColors[1], 1.0) * texture2D(blurTexture2, vUv) + \
+													 lerpBloomFactor(bloomFactors[2]) * vec4(bloomTintColors[2], 1.0) * texture2D(blurTexture3, vUv) + \
+													 lerpBloomFactor(bloomFactors[3]) * vec4(bloomTintColors[3], 1.0) * texture2D(blurTexture4, vUv) + \
+													 lerpBloomFactor(bloomFactors[4]) * vec4(bloomTintColors[4], 1.0) * texture2D(blurTexture5, vUv) );\
+				}"
+    });
+  }
+});
+UnrealBloomPass.BlurDirectionX = new _threeModule.Vector2(1.0, 0.0);
+UnrealBloomPass.BlurDirectionY = new _threeModule.Vector2(0.0, 1.0);
+},{"../../../build/three.module.js":"node_modules/three/build/three.module.js","../postprocessing/Pass.js":"node_modules/three/examples/jsm/postprocessing/Pass.js","../shaders/CopyShader.js":"node_modules/three/examples/jsm/shaders/CopyShader.js","../shaders/LuminosityHighPassShader.js":"node_modules/three/examples/jsm/shaders/LuminosityHighPassShader.js"}],"node_modules/three/examples/jsm/shaders/DigitalGlitch.js":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.DigitalGlitch = void 0;
+
+/**
+ * @author felixturner / http://airtight.cc/
+ *
+ * RGB Shift Shader
+ * Shifts red and blue channels from center in opposite directions
+ * Ported from http://kriss.cx/tom/2009/05/rgb-shift/
+ * by Tom Butterworth / http://kriss.cx/tom/
+ *
+ * amount: shift distance (1 is width of input)
+ * angle: shift angle in radians
+ */
+var DigitalGlitch = {
+  uniforms: {
+    "tDiffuse": {
+      value: null
+    },
+    //diffuse texture
+    "tDisp": {
+      value: null
+    },
+    //displacement texture for digital glitch squares
+    "byp": {
+      value: 0
+    },
+    //apply the glitch ?
+    "amount": {
+      value: 0.08
+    },
+    "angle": {
+      value: 0.02
+    },
+    "seed": {
+      value: 0.02
+    },
+    "seed_x": {
+      value: 0.02
+    },
+    //-1,1
+    "seed_y": {
+      value: 0.02
+    },
+    //-1,1
+    "distortion_x": {
+      value: 0.5
+    },
+    "distortion_y": {
+      value: 0.6
+    },
+    "col_s": {
+      value: 0.05
+    }
+  },
+  vertexShader: ["varying vec2 vUv;", "void main() {", "	vUv = uv;", "	gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );", "}"].join("\n"),
+  fragmentShader: ["uniform int byp;", //should we apply the glitch ?
+  "uniform sampler2D tDiffuse;", "uniform sampler2D tDisp;", "uniform float amount;", "uniform float angle;", "uniform float seed;", "uniform float seed_x;", "uniform float seed_y;", "uniform float distortion_x;", "uniform float distortion_y;", "uniform float col_s;", "varying vec2 vUv;", "float rand(vec2 co){", "	return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);", "}", "void main() {", "	if(byp<1) {", "		vec2 p = vUv;", "		float xs = floor(gl_FragCoord.x / 0.5);", "		float ys = floor(gl_FragCoord.y / 0.5);", //based on staffantans glitch shader for unity https://github.com/staffantan/unityglitch
+  "		vec4 normal = texture2D (tDisp, p*seed*seed);", "		if(p.y<distortion_x+col_s && p.y>distortion_x-col_s*seed) {", "			if(seed_x>0.){", "				p.y = 1. - (p.y + distortion_y);", "			}", "			else {", "				p.y = distortion_y;", "			}", "		}", "		if(p.x<distortion_y+col_s && p.x>distortion_y-col_s*seed) {", "			if(seed_y>0.){", "				p.x=distortion_x;", "			}", "			else {", "				p.x = 1. - (p.x + distortion_x);", "			}", "		}", "		p.x+=normal.x*seed_x*(seed/5.);", "		p.y+=normal.y*seed_y*(seed/5.);", //base from RGB shift shader
+  "		vec2 offset = amount * vec2( cos(angle), sin(angle));", "		vec4 cr = texture2D(tDiffuse, p + offset);", "		vec4 cga = texture2D(tDiffuse, p);", "		vec4 cb = texture2D(tDiffuse, p - offset);", "		gl_FragColor = vec4(cr.r, cga.g, cb.b, cga.a);", //add noise
+  "		vec4 snow = 200.*amount*vec4(rand(vec2(xs * seed,ys * seed*50.))*0.2);", "		gl_FragColor = gl_FragColor+ snow;", "	}", "	else {", "		gl_FragColor=texture2D (tDiffuse, vUv);", "	}", "}"].join("\n")
+};
+exports.DigitalGlitch = DigitalGlitch;
+},{}],"node_modules/three/examples/jsm/postprocessing/GlitchPass.js":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.GlitchPass = void 0;
+
+var _threeModule = require("../../../build/three.module.js");
+
+var _Pass = require("../postprocessing/Pass.js");
+
+var _DigitalGlitch = require("../shaders/DigitalGlitch.js");
+
+/**
+ * @author alteredq / http://alteredqualia.com/
+ */
+var GlitchPass = function (dt_size) {
+  _Pass.Pass.call(this);
+
+  if (_DigitalGlitch.DigitalGlitch === undefined) console.error("GlitchPass relies on DigitalGlitch");
+  var shader = _DigitalGlitch.DigitalGlitch;
+  this.uniforms = _threeModule.UniformsUtils.clone(shader.uniforms);
+  if (dt_size == undefined) dt_size = 64;
+  this.uniforms["tDisp"].value = this.generateHeightmap(dt_size);
+  this.material = new _threeModule.ShaderMaterial({
+    uniforms: this.uniforms,
+    vertexShader: shader.vertexShader,
+    fragmentShader: shader.fragmentShader
+  });
+  this.fsQuad = new _Pass.Pass.FullScreenQuad(this.material);
+  this.goWild = false;
+  this.curF = 0;
+  this.generateTrigger();
+};
+
+exports.GlitchPass = GlitchPass;
+GlitchPass.prototype = Object.assign(Object.create(_Pass.Pass.prototype), {
+  constructor: GlitchPass,
+  render: function (renderer, writeBuffer, readBuffer
+  /*, deltaTime, maskActive */
+  ) {
+    this.uniforms["tDiffuse"].value = readBuffer.texture;
+    this.uniforms['seed'].value = Math.random(); //default seeding
+
+    this.uniforms['byp'].value = 0;
+
+    if (this.curF % this.randX == 0 || this.goWild == true) {
+      this.uniforms['amount'].value = Math.random() / 30;
+      this.uniforms['angle'].value = _threeModule.MathUtils.randFloat(-Math.PI, Math.PI);
+      this.uniforms['seed_x'].value = _threeModule.MathUtils.randFloat(-1, 1);
+      this.uniforms['seed_y'].value = _threeModule.MathUtils.randFloat(-1, 1);
+      this.uniforms['distortion_x'].value = _threeModule.MathUtils.randFloat(0, 1);
+      this.uniforms['distortion_y'].value = _threeModule.MathUtils.randFloat(0, 1);
+      this.curF = 0;
+      this.generateTrigger();
+    } else if (this.curF % this.randX < this.randX / 5) {
+      this.uniforms['amount'].value = Math.random() / 90;
+      this.uniforms['angle'].value = _threeModule.MathUtils.randFloat(-Math.PI, Math.PI);
+      this.uniforms['distortion_x'].value = _threeModule.MathUtils.randFloat(0, 1);
+      this.uniforms['distortion_y'].value = _threeModule.MathUtils.randFloat(0, 1);
+      this.uniforms['seed_x'].value = _threeModule.MathUtils.randFloat(-0.3, 0.3);
+      this.uniforms['seed_y'].value = _threeModule.MathUtils.randFloat(-0.3, 0.3);
+    } else if (this.goWild == false) {
+      this.uniforms['byp'].value = 1;
+    }
+
+    this.curF++;
+
+    if (this.renderToScreen) {
+      renderer.setRenderTarget(null);
+      this.fsQuad.render(renderer);
+    } else {
+      renderer.setRenderTarget(writeBuffer);
+      if (this.clear) renderer.clear();
+      this.fsQuad.render(renderer);
+    }
+  },
+  generateTrigger: function () {
+    this.randX = _threeModule.MathUtils.randInt(120, 240);
+  },
+  generateHeightmap: function (dt_size) {
+    var data_arr = new Float32Array(dt_size * dt_size * 3);
+    var length = dt_size * dt_size;
+
+    for (var i = 0; i < length; i++) {
+      var val = _threeModule.MathUtils.randFloat(0, 1);
+
+      data_arr[i * 3 + 0] = val;
+      data_arr[i * 3 + 1] = val;
+      data_arr[i * 3 + 2] = val;
+    }
+
+    return new _threeModule.DataTexture(data_arr, dt_size, dt_size, _threeModule.RGBFormat, _threeModule.FloatType);
+  }
+});
+},{"../../../build/three.module.js":"node_modules/three/build/three.module.js","../postprocessing/Pass.js":"node_modules/three/examples/jsm/postprocessing/Pass.js","../shaders/DigitalGlitch.js":"node_modules/three/examples/jsm/shaders/DigitalGlitch.js"}],"node_modules/three/examples/jsm/postprocessing/MaskPass.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -35999,8 +36545,8 @@ function () {
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(this.renderer.domElement);
     this.composer.addPass(new RenderPass_1.RenderPass(this.scene, this.camera));
-    this.onUpdate = onUpdate;
     this.onInit = onInit;
+    this.onUpdate = onUpdate;
   }
 
   _createClass(World, [{
@@ -36060,6 +36606,10 @@ var THREE = __importStar(require("three"));
 
 var ShaderPass_1 = require("three/examples/jsm/postprocessing/ShaderPass");
 
+var UnrealBloomPass_1 = require("three/examples/jsm/postprocessing/UnrealBloomPass");
+
+var GlitchPass_1 = require("three/examples/jsm/postprocessing/GlitchPass");
+
 var World_1 = __importDefault(require("./ts/World"));
 
 var grain_vert_1 = __importDefault(require("./glsl/grain.vert"));
@@ -36072,7 +36622,15 @@ var mat = new THREE.MeshBasicMaterial({
   color: 0x050505
 });
 var terrain = new THREE.Mesh(geo, mat);
-terrain.rotation.x = -Math.PI / 2; // post-fx noise
+terrain.rotation.x = -Math.PI / 2;
+var geo2 = new THREE.ConeGeometry(2, 3);
+var line = new THREE.EdgesGeometry(geo2);
+var mat2 = new THREE.LineBasicMaterial({
+  color: 0xff0000,
+  linewidth: 0
+});
+var box = new THREE.Mesh(line, mat2);
+box.position.y = 10; // post-fx noise
 
 var grainFx = new ShaderPass_1.ShaderPass({
   uniforms: {
@@ -36086,19 +36644,27 @@ var grainFx = new ShaderPass_1.ShaderPass({
   vertexShader: grain_vert_1.default,
   fragmentShader: grain_frag_1.default
 });
+var bloomFx = new UnrealBloomPass_1.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 2, 0, 0.1);
+var glitchFx = new GlitchPass_1.GlitchPass();
 var world = new World_1.default({
   onInit: function onInit(_ref) {
     var scene = _ref.scene,
         camera = _ref.camera,
+        renderer = _ref.renderer,
         composer = _ref.composer;
+    renderer.toneMapping = THREE.LinearToneMapping;
     camera.position.y = 3;
     camera.position.z = 10;
     camera.lookAt(0, 3, 0);
+    scene.add(terrain);
+    scene.add(box);
     grainFx.renderToScreen = true;
+    glitchFx.goWild = true;
     composer.addPass(grainFx);
+    composer.addPass(bloomFx);
+    composer.addPass(glitchFx);
     scene.background = new THREE.Color(0xc9cdcc);
     scene.fog = new THREE.FogExp2(0xc9cdcc, 0.08);
-    scene.add(terrain);
   },
   onUpdate: function onUpdate(time) {
     // eslint-disable-next-line dot-notation
@@ -36106,7 +36672,7 @@ var world = new World_1.default({
   }
 });
 world.init();
-},{"three":"node_modules/three/build/three.module.js","three/examples/jsm/postprocessing/ShaderPass":"node_modules/three/examples/jsm/postprocessing/ShaderPass.js","./ts/World":"src/ts/World.ts","./glsl/grain.vert":"src/glsl/grain.vert","./glsl/grain.frag":"src/glsl/grain.frag"}],"node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
+},{"three":"node_modules/three/build/three.module.js","three/examples/jsm/postprocessing/ShaderPass":"node_modules/three/examples/jsm/postprocessing/ShaderPass.js","three/examples/jsm/postprocessing/UnrealBloomPass":"node_modules/three/examples/jsm/postprocessing/UnrealBloomPass.js","three/examples/jsm/postprocessing/GlitchPass":"node_modules/three/examples/jsm/postprocessing/GlitchPass.js","./ts/World":"src/ts/World.ts","./glsl/grain.vert":"src/glsl/grain.vert","./glsl/grain.frag":"src/glsl/grain.frag"}],"node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
 var global = arguments[3];
 var OVERLAY_ID = '__parcel__error__overlay__';
 var OldModule = module.bundle.Module;
