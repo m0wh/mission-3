@@ -35975,7 +35975,126 @@ UnrealBloomPass.prototype = Object.assign(Object.create(_Pass.Pass.prototype), {
 });
 UnrealBloomPass.BlurDirectionX = new _threeModule.Vector2(1.0, 0.0);
 UnrealBloomPass.BlurDirectionY = new _threeModule.Vector2(0.0, 1.0);
-},{"../../../build/three.module.js":"node_modules/three/build/three.module.js","../postprocessing/Pass.js":"node_modules/three/examples/jsm/postprocessing/Pass.js","../shaders/CopyShader.js":"node_modules/three/examples/jsm/shaders/CopyShader.js","../shaders/LuminosityHighPassShader.js":"node_modules/three/examples/jsm/shaders/LuminosityHighPassShader.js"}],"node_modules/three/examples/jsm/shaders/FXAAShader.js":[function(require,module,exports) {
+},{"../../../build/three.module.js":"node_modules/three/build/three.module.js","../postprocessing/Pass.js":"node_modules/three/examples/jsm/postprocessing/Pass.js","../shaders/CopyShader.js":"node_modules/three/examples/jsm/shaders/CopyShader.js","../shaders/LuminosityHighPassShader.js":"node_modules/three/examples/jsm/shaders/LuminosityHighPassShader.js"}],"node_modules/three/examples/jsm/shaders/FilmShader.js":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.FilmShader = void 0;
+
+/**
+ * @author alteredq / http://alteredqualia.com/
+ *
+ * Film grain & scanlines shader
+ *
+ * - ported from HLSL to WebGL / GLSL
+ * http://www.truevision3d.com/forums/showcase/staticnoise_colorblackwhite_scanline_shaders-t18698.0.html
+ *
+ * Screen Space Static Postprocessor
+ *
+ * Produces an analogue noise overlay similar to a film grain / TV static
+ *
+ * Original implementation and noise algorithm
+ * Pat 'Hawthorne' Shearon
+ *
+ * Optimized scanlines + noise version with intensity scaling
+ * Georg 'Leviathan' Steinrohder
+ *
+ * This version is provided under a Creative Commons Attribution 3.0 License
+ * http://creativecommons.org/licenses/by/3.0/
+ */
+var FilmShader = {
+  uniforms: {
+    "tDiffuse": {
+      value: null
+    },
+    "time": {
+      value: 0.0
+    },
+    "nIntensity": {
+      value: 0.5
+    },
+    "sIntensity": {
+      value: 0.05
+    },
+    "sCount": {
+      value: 4096
+    },
+    "grayscale": {
+      value: 1
+    }
+  },
+  vertexShader: ["varying vec2 vUv;", "void main() {", "	vUv = uv;", "	gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );", "}"].join("\n"),
+  fragmentShader: ["#include <common>", // control parameter
+  "uniform float time;", "uniform bool grayscale;", // noise effect intensity value (0 = no effect, 1 = full effect)
+  "uniform float nIntensity;", // scanlines effect intensity value (0 = no effect, 1 = full effect)
+  "uniform float sIntensity;", // scanlines effect count value (0 = no effect, 4096 = full effect)
+  "uniform float sCount;", "uniform sampler2D tDiffuse;", "varying vec2 vUv;", "void main() {", // sample the source
+  "	vec4 cTextureScreen = texture2D( tDiffuse, vUv );", // make some noise
+  "	float dx = rand( vUv + time );", // add noise
+  "	vec3 cResult = cTextureScreen.rgb + cTextureScreen.rgb * clamp( 0.1 + dx, 0.0, 1.0 );", // get us a sine and cosine
+  "	vec2 sc = vec2( sin( vUv.y * sCount ), cos( vUv.y * sCount ) );", // add scanlines
+  "	cResult += cTextureScreen.rgb * vec3( sc.x, sc.y, sc.x ) * sIntensity;", // interpolate between source and result by intensity
+  "	cResult = cTextureScreen.rgb + clamp( nIntensity, 0.0,1.0 ) * ( cResult - cTextureScreen.rgb );", // convert to grayscale if desired
+  "	if( grayscale ) {", "		cResult = vec3( cResult.r * 0.3 + cResult.g * 0.59 + cResult.b * 0.11 );", "	}", "	gl_FragColor =  vec4( cResult, cTextureScreen.a );", "}"].join("\n")
+};
+exports.FilmShader = FilmShader;
+},{}],"node_modules/three/examples/jsm/postprocessing/FilmPass.js":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.FilmPass = void 0;
+
+var _threeModule = require("../../../build/three.module.js");
+
+var _Pass = require("../postprocessing/Pass.js");
+
+var _FilmShader = require("../shaders/FilmShader.js");
+
+/**
+ * @author alteredq / http://alteredqualia.com/
+ */
+var FilmPass = function (noiseIntensity, scanlinesIntensity, scanlinesCount, grayscale) {
+  _Pass.Pass.call(this);
+
+  if (_FilmShader.FilmShader === undefined) console.error("FilmPass relies on FilmShader");
+  var shader = _FilmShader.FilmShader;
+  this.uniforms = _threeModule.UniformsUtils.clone(shader.uniforms);
+  this.material = new _threeModule.ShaderMaterial({
+    uniforms: this.uniforms,
+    vertexShader: shader.vertexShader,
+    fragmentShader: shader.fragmentShader
+  });
+  if (grayscale !== undefined) this.uniforms.grayscale.value = grayscale;
+  if (noiseIntensity !== undefined) this.uniforms.nIntensity.value = noiseIntensity;
+  if (scanlinesIntensity !== undefined) this.uniforms.sIntensity.value = scanlinesIntensity;
+  if (scanlinesCount !== undefined) this.uniforms.sCount.value = scanlinesCount;
+  this.fsQuad = new _Pass.Pass.FullScreenQuad(this.material);
+};
+
+exports.FilmPass = FilmPass;
+FilmPass.prototype = Object.assign(Object.create(_Pass.Pass.prototype), {
+  constructor: FilmPass,
+  render: function (renderer, writeBuffer, readBuffer, deltaTime
+  /*, maskActive */
+  ) {
+    this.uniforms["tDiffuse"].value = readBuffer.texture;
+    this.uniforms["time"].value += deltaTime;
+
+    if (this.renderToScreen) {
+      renderer.setRenderTarget(null);
+      this.fsQuad.render(renderer);
+    } else {
+      renderer.setRenderTarget(writeBuffer);
+      if (this.clear) renderer.clear();
+      this.fsQuad.render(renderer);
+    }
+  }
+});
+},{"../../../build/three.module.js":"node_modules/three/build/three.module.js","../postprocessing/Pass.js":"node_modules/three/examples/jsm/postprocessing/Pass.js","../shaders/FilmShader.js":"node_modules/three/examples/jsm/shaders/FilmShader.js"}],"node_modules/three/examples/jsm/shaders/FXAAShader.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -36407,7 +36526,7 @@ function () {
     _classCallCheck(this, World);
 
     this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 100);
+    this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
     this.renderer = new THREE.WebGLRenderer({
       antialias: true
     });
@@ -36967,7 +37086,7 @@ function createTerrain() {
   geo.computeFaceNormals();
   geo.computeVertexNormals();
   var mat = new THREE.MeshBasicMaterial({
-    color: 0x050505
+    color: 0x020202
   });
   var terrain = new THREE.Mesh(geo, mat);
   terrain.rotation.x = -Math.PI / 2;
@@ -37028,6 +37147,8 @@ var ShaderPass_1 = require("three/examples/jsm/postprocessing/ShaderPass");
 
 var UnrealBloomPass_1 = require("three/examples/jsm/postprocessing/UnrealBloomPass");
 
+var FilmPass_1 = require("three/examples/jsm/postprocessing/FilmPass");
+
 var FXAAShader_1 = require("three/examples/jsm/shaders/FXAAShader");
 
 var World_1 = __importDefault(require("./ts/World"));
@@ -37043,6 +37164,7 @@ var grain_frag_1 = __importDefault(require("./glsl/grain.frag")); // Add terrain
 
 var terrain = terrain_1.default(); // post-fx
 
+var filmFx = new FilmPass_1.FilmPass(0.1, 0.1, 1000);
 var bloomFx = new UnrealBloomPass_1.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.1, 0.5, 0);
 var grainFx = new ShaderPass_1.ShaderPass({
   uniforms: {
@@ -37065,26 +37187,27 @@ var world = new World_1.default({
         renderer = _ref.renderer,
         composer = _ref.composer;
     renderer.toneMapping = THREE.LinearToneMapping;
-    camera.position.y = 3;
+    camera.position.y = 1.5;
     camera.position.z = 10;
     camera.lookAt(cameraLookingAt);
     scene.add(terrain);
     composer.addPass(bloomFx);
     composer.addPass(fxaa);
+    composer.addPass(filmFx);
     composer.addPass(grainFx);
     scene.background = new THREE.Color(0xc9cdcc);
-    scene.fog = new THREE.FogExp2(0xc9cdcc, 0.1);
+    scene.fog = new THREE.FogExp2(0xc9cdcc, 0.07);
   },
   onUpdate: function onUpdate(time, _ref2) {
     var camera = _ref2.camera;
     // eslint-disable-next-line dot-notation
     grainFx.uniforms['amount'].value = time % 1000;
-    cameraLookingAt.set(utils_1.lerp(cameraLookingAt.x, utils_1.mouse.x, 0.05), utils_1.lerp(cameraLookingAt.y, 2 - utils_1.mouse.y, 0.05), 7);
+    cameraLookingAt.set(utils_1.lerp(cameraLookingAt.x, utils_1.mouse.x, 0.05), utils_1.lerp(cameraLookingAt.y, 1 - utils_1.mouse.y, 0.05), 7);
     camera.lookAt(cameraLookingAt);
   }
 });
 world.init();
-},{"three":"node_modules/three/build/three.module.js","three/examples/jsm/postprocessing/ShaderPass":"node_modules/three/examples/jsm/postprocessing/ShaderPass.js","three/examples/jsm/postprocessing/UnrealBloomPass":"node_modules/three/examples/jsm/postprocessing/UnrealBloomPass.js","three/examples/jsm/shaders/FXAAShader":"node_modules/three/examples/jsm/shaders/FXAAShader.js","./ts/World":"src/ts/World.ts","./ts/terrain":"src/ts/terrain.ts","./ts/utils":"src/ts/utils.ts","./glsl/grain.vert":"src/glsl/grain.vert","./glsl/grain.frag":"src/glsl/grain.frag"}],"node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
+},{"three":"node_modules/three/build/three.module.js","three/examples/jsm/postprocessing/ShaderPass":"node_modules/three/examples/jsm/postprocessing/ShaderPass.js","three/examples/jsm/postprocessing/UnrealBloomPass":"node_modules/three/examples/jsm/postprocessing/UnrealBloomPass.js","three/examples/jsm/postprocessing/FilmPass":"node_modules/three/examples/jsm/postprocessing/FilmPass.js","three/examples/jsm/shaders/FXAAShader":"node_modules/three/examples/jsm/shaders/FXAAShader.js","./ts/World":"src/ts/World.ts","./ts/terrain":"src/ts/terrain.ts","./ts/utils":"src/ts/utils.ts","./glsl/grain.vert":"src/glsl/grain.vert","./glsl/grain.frag":"src/glsl/grain.frag"}],"node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
 var global = arguments[3];
 var OVERLAY_ID = '__parcel__error__overlay__';
 var OldModule = module.bundle.Module;
@@ -37112,7 +37235,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "55381" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "55597" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
