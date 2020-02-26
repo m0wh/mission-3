@@ -13,8 +13,8 @@ body {
   transition: width 0.5s cubic-bezier(0,0.8,.2,1), height 0.5s cubic-bezier(0,0.8,.2,1);
   
   &.hovering {
-    height: 200px;
-    width: 200px;
+    height: 100px;
+    width: 100px;
     transition: width 2s cubic-bezier(0,0.9,.1,1), height 2s cubic-bezier(0,0.9,.1,1);
   }
 }
