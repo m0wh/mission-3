@@ -7,6 +7,10 @@ import createTerrain from './ts/terrain'
 import { mouse, lerp } from './ts/utils'
 import grainVertexShader from './glsl/grain.vert'
 import grainFragmentShader from './glsl/grain.frag'
+import Cursor from './ts/Cursor'
+
+const cursor = new Cursor('cursor', 0.1)
+cursor.init()
 
 // Add terrain
 const terrain = createTerrain()
