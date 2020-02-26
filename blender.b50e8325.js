@@ -184,12 +184,12 @@ function reloadCSS() {
 }
 
 module.exports = reloadCSS;
-},{"./bundle-url":"node_modules/parcel-bundler/src/builtins/bundle-url.js"}],"src/style.scss":[function(require,module,exports) {
+},{"./bundle-url":"node_modules/parcel-bundler/src/builtins/bundle-url.js"}],"src/assets/fonts/blender.css":[function(require,module,exports) {
 var reloadCSS = require('_css_loader');
 
 module.hot.dispose(reloadCSS);
 module.hot.accept(reloadCSS);
-},{"_css_loader":"node_modules/parcel-bundler/src/builtins/css-loader.js"}],"node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
+},{"./BlenderPro-Book.woff2":[["BlenderPro-Book.70eed6b5.woff2","src/assets/fonts/BlenderPro-Book.woff2"],"src/assets/fonts/BlenderPro-Book.woff2"],"./BlenderPro-Book.woff":[["BlenderPro-Book.9be4aab1.woff","src/assets/fonts/BlenderPro-Book.woff"],"src/assets/fonts/BlenderPro-Book.woff"],"./BlenderPro-Thin.woff2":[["BlenderPro-Thin.a8d9bdd9.woff2","src/assets/fonts/BlenderPro-Thin.woff2"],"src/assets/fonts/BlenderPro-Thin.woff2"],"./BlenderPro-Thin.woff":[["BlenderPro-Thin.aee47fe7.woff","src/assets/fonts/BlenderPro-Thin.woff"],"src/assets/fonts/BlenderPro-Thin.woff"],"_css_loader":"node_modules/parcel-bundler/src/builtins/css-loader.js"}],"node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
 var global = arguments[3];
 var OVERLAY_ID = '__parcel__error__overlay__';
 var OldModule = module.bundle.Module;
@@ -394,4 +394,4 @@ function hmrAcceptRun(bundle, id) {
   }
 }
 },{}]},{},["node_modules/parcel-bundler/src/builtins/hmr-runtime.js"], null)
-//# sourceMappingURL=/style.6d80b553.js.map
+//# sourceMappingURL=/blender.b50e8325.js.map

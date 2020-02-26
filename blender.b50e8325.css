@@ -1,0 +1,16 @@
+@font-face {
+  font-family: 'Blender';
+  src: url('/BlenderPro-Book.70eed6b5.woff2') format('woff2'), url('/BlenderPro-Book.9be4aab1.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Blender';
+  src: url('/BlenderPro-Thin.a8d9bdd9.woff2') format('woff2'), url('/BlenderPro-Thin.aee47fe7.woff') format('woff');
+  font-weight: 100;
+  font-style: normal;
+}
+
+
+/*# sourceMappingURL=/blender.b50e8325.css.map */

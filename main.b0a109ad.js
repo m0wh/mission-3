@@ -36983,11 +36983,13 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.mouse = {
   x: 0,
-  y: 0
+  y: 0,
+  target: null
 };
 window.addEventListener('mousemove', function (e) {
   exports.mouse.x = e.clientX / window.innerWidth * 2 - 1;
   exports.mouse.y = e.clientY / window.innerHeight * 2 - 1;
+  exports.mouse.target = e.target;
 });
 
 function lerp(start, end, amt) {
@@ -36999,7 +37001,81 @@ exports.lerp = lerp;
 module.exports = "#define GLSLIFY 1\nvarying vec2 vUv;\n\nvoid main() {\n  vUv = uv;\n  gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );\n}\n";
 },{}],"src/glsl/grain.frag":[function(require,module,exports) {
 module.exports = "#define GLSLIFY 1\nuniform float amount;\nuniform sampler2D tDiffuse;\nvarying vec2 vUv;\n\nfloat random (vec2 p) {\n  vec2 K1 = vec2(23.14069263277926, 2.665144142690225);\n  return fract( cos( dot(p,K1) ) * 12345.6789 );\n}\n\nvoid main () {\n  vec4 color = texture2D(tDiffuse, vUv);\n  vec2 uvRandom = vUv;\n  uvRandom.y *= random(vec2(uvRandom.y,amount));\n  color.r += random(uvRandom) * 0.1;\n  color.g += random(uvRandom) * 0.1;\n  color.b += random(uvRandom) * 0.1;\n  gl_FragColor = vec4(color);\n}\n";
-},{}],"src/main.ts":[function(require,module,exports) {
+},{}],"src/ts/Cursor.ts":[function(require,module,exports) {
+"use strict";
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var utils_1 = require("./utils");
+
+var Cursor =
+/*#__PURE__*/
+function () {
+  function Cursor() {
+    var className = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 'cursor';
+    var lerpAmt = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0.1;
+
+    _classCallCheck(this, Cursor);
+
+    this.el = document.createElement('div');
+    this.className = 'cursor';
+    this.lerpAmt = 0.1;
+    this.hovering = false;
+    this.position = {
+      x: (utils_1.mouse.x + 1) * window.innerWidth / 2,
+      y: (utils_1.mouse.y + 1) * window.innerHeight / 2
+    };
+    this.lerpAmt = lerpAmt;
+    this.className = className;
+  }
+
+  _createClass(Cursor, [{
+    key: "init",
+    value: function init() {
+      this.el.style.position = 'absolute';
+      this.el.style.pointerEvents = 'none';
+      this.el.style.transform = 'translate3d(-50%, -50%, 0)';
+      this.el.classList.add(this.className);
+      document.body.append(this.el);
+      requestAnimationFrame(this.update.bind(this));
+    }
+  }, {
+    key: "update",
+    value: function update() {
+      this.position = {
+        x: utils_1.lerp(this.position.x, (utils_1.mouse.x + 1) * window.innerWidth / 2, this.lerpAmt),
+        y: utils_1.lerp(this.position.y, (utils_1.mouse.y + 1) * window.innerHeight / 2, this.lerpAmt)
+      };
+
+      if (utils_1.mouse.target) {
+        this.hovering = ['a', 'button'].includes(utils_1.mouse.target.tagName.toLowerCase());
+      }
+
+      this.draw();
+      requestAnimationFrame(this.update.bind(this));
+    }
+  }, {
+    key: "draw",
+    value: function draw() {
+      this.el.style.left = this.position.x + 'px';
+      this.el.style.top = this.position.y + 'px';
+      this.el.classList.toggle('hovering', this.hovering);
+    }
+  }]);
+
+  return Cursor;
+}();
+
+exports.default = Cursor;
+},{"./utils":"src/ts/utils.ts"}],"src/main.ts":[function(require,module,exports) {
 "use strict";
 
 var __importStar = this && this.__importStar || function (mod) {
@@ -37038,12 +37114,16 @@ var utils_1 = require("./ts/utils");
 
 var grain_vert_1 = __importDefault(require("./glsl/grain.vert"));
 
-var grain_frag_1 = __importDefault(require("./glsl/grain.frag")); // Add terrain
+var grain_frag_1 = __importDefault(require("./glsl/grain.frag"));
 
+var Cursor_1 = __importDefault(require("./ts/Cursor"));
+
+var cursor = new Cursor_1.default('cursor', 0.1);
+cursor.init(); // Add terrain
 
 var terrain = terrain_1.default(); // post-fx
 
-var bloomFx = new UnrealBloomPass_1.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.1, 0.5, 0);
+var bloomFx = new UnrealBloomPass_1.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.05, 0.5, 0);
 var grainFx = new ShaderPass_1.ShaderPass({
   uniforms: {
     tDiffuse: {
@@ -37084,7 +37164,7 @@ var world = new World_1.default({
   }
 });
 world.init();
-},{"three":"node_modules/three/build/three.module.js","three/examples/jsm/postprocessing/ShaderPass":"node_modules/three/examples/jsm/postprocessing/ShaderPass.js","three/examples/jsm/postprocessing/UnrealBloomPass":"node_modules/three/examples/jsm/postprocessing/UnrealBloomPass.js","three/examples/jsm/shaders/FXAAShader":"node_modules/three/examples/jsm/shaders/FXAAShader.js","./ts/World":"src/ts/World.ts","./ts/terrain":"src/ts/terrain.ts","./ts/utils":"src/ts/utils.ts","./glsl/grain.vert":"src/glsl/grain.vert","./glsl/grain.frag":"src/glsl/grain.frag"}],"node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
+},{"three":"node_modules/three/build/three.module.js","three/examples/jsm/postprocessing/ShaderPass":"node_modules/three/examples/jsm/postprocessing/ShaderPass.js","three/examples/jsm/postprocessing/UnrealBloomPass":"node_modules/three/examples/jsm/postprocessing/UnrealBloomPass.js","three/examples/jsm/shaders/FXAAShader":"node_modules/three/examples/jsm/shaders/FXAAShader.js","./ts/World":"src/ts/World.ts","./ts/terrain":"src/ts/terrain.ts","./ts/utils":"src/ts/utils.ts","./glsl/grain.vert":"src/glsl/grain.vert","./glsl/grain.frag":"src/glsl/grain.frag","./ts/Cursor":"src/ts/Cursor.ts"}],"node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
 var global = arguments[3];
 var OVERLAY_ID = '__parcel__error__overlay__';
 var OldModule = module.bundle.Module;
@@ -37112,7 +37192,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "55982" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "55786" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
