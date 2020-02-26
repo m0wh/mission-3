@@ -9,12 +9,13 @@ body {
   width: 10px;
   border: 1px solid #fff;
   border-radius: 50%;
-  transition: 2s cubic-bezier(0, 0.9, 0.1, 1);
   opacity: 0.5;
+  transition: width 0.5s cubic-bezier(0, 0.8, 0.2, 1), height 0.5s cubic-bezier(0, 0.8, 0.2, 1);
 }
 .cursor.hovering {
-  height: 230px;
-  width: 230px;
+  height: 100px;
+  width: 100px;
+  transition: width 2s cubic-bezier(0, 0.9, 0.1, 1), height 2s cubic-bezier(0, 0.9, 0.1, 1);
 }
 
 main {

@@ -37040,9 +37040,9 @@ function () {
   _createClass(Cursor, [{
     key: "init",
     value: function init() {
-      this.el.style.position = 'absolute';
+      this.el.style.position = 'fixed';
       this.el.style.pointerEvents = 'none';
-      this.el.style.transform = 'translate3d(-50%, -50%, 0)';
+      this.el.style.transform = 'translate(-50%, -50%)';
       this.el.classList.add(this.className);
       document.body.append(this.el);
       requestAnimationFrame(this.update.bind(this));
@@ -37192,7 +37192,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "55786" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "59488" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
