@@ -9,12 +9,13 @@ body {
   width: 10px;
   border: 1px solid #fff;
   border-radius: 50%;
-  transition: 2s cubic-bezier(0,0.9,.1,1);
   opacity: .5;
-
+  transition: width 0.5s cubic-bezier(0,0.8,.2,1), height 0.5s cubic-bezier(0,0.8,.2,1);
+  
   &.hovering {
-    height: 230px;
-    width: 230px;
+    height: 200px;
+    width: 200px;
+    transition: width 2s cubic-bezier(0,0.9,.1,1), height 2s cubic-bezier(0,0.9,.1,1);
   }
 }
 

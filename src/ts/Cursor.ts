@@ -16,9 +16,9 @@ export default class Cursor {
   }
 
   init (): void {
-    this.el.style.position = 'absolute'
+    this.el.style.position = 'fixed'
     this.el.style.pointerEvents = 'none'
-    this.el.style.transform = 'translate3d(-50%, -50%, 0)'
+    this.el.style.transform = 'translate(-50%, -50%)'
     this.el.classList.add(this.className)
 
     document.body.append(this.el)
