@@ -1,4 +1,37 @@
 body {
   margin: 0;
   overflow: hidden;
+  font-family: 'Blender';
+}
+
+main {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+
+  * {
+    color: #fff;
+    margin: 0;
+    text-transform: uppercase;
+  }
+
+  h1 {
+    font-weight: 100;
+    font-size: 100px;
+  }
+
+  a {
+    font-size: 14px;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
 }
