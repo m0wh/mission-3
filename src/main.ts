@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass'
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass'
 import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader'
+import gsap from 'gsap'
 import World from './ts/World'
 import createTerrain from './ts/terrain'
 import { mouse, lerp } from './ts/utils'
@@ -9,6 +10,7 @@ import grainVertexShader from './glsl/grain.vert'
 import grainFragmentShader from './glsl/grain.frag'
 import Cursor from './ts/Cursor'
 
+// Cursor
 const cursor = new Cursor('cursor', 0.1)
 cursor.init()
 
@@ -17,15 +19,12 @@ const terrain = createTerrain()
 
 // post-fx
 const bloomFx = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.05, 0.5, 0)
+const fxaa = new ShaderPass(FXAAShader)
 const grainFx = new ShaderPass({
-  uniforms: {
-    tDiffuse: { value: null },
-    amount: { value: 0 }
-  },
+  uniforms: { tDiffuse: { value: null }, amount: { value: 0 } },
   vertexShader: grainVertexShader,
   fragmentShader: grainFragmentShader
 })
-const fxaa = new ShaderPass(FXAAShader)
 
 const cameraLookingAt = new THREE.Vector3(mouse.x, 3 - mouse.y, 7)
 
@@ -59,3 +58,9 @@ const world = new World({
 })
 
 world.init()
+
+const tl = gsap.timeline()
+tl
+  .from('.title', 1, { y: '100%', autoAlpha: 0, delay: 1, ease: 'cubic.out' })
+  .from('canvas', 3, { autoAlpha: 0, delay: 1 })
+  .from('.link', 1, { y: '-100%', autoAlpha: 0, ease: 'cubic.out' }, '-=2')

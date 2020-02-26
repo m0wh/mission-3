@@ -1,4 +1,5 @@
 import { mouse, lerp } from './utils'
+import gsap from 'gsap'
 
 export default class Cursor {
   private el: HTMLElement = document.createElement('div')
@@ -41,8 +42,7 @@ export default class Cursor {
   }
 
   draw (): void {
-    this.el.style.left = this.position.x + 'px'
-    this.el.style.top = this.position.y + 'px'
+    gsap.set(this.el, this.position)
     this.el.classList.toggle('hovering', this.hovering)
   }
 }

@@ -2,6 +2,7 @@ body {
   margin: 0;
   overflow: hidden;
   font-family: 'Blender';
+  background-color: #050505;
 }
 
 .cursor {
@@ -11,6 +12,7 @@ body {
   border-radius: 50%;
   opacity: .5;
   transition: width 0.5s cubic-bezier(0,0.8,.2,1), height 0.5s cubic-bezier(0,0.8,.2,1);
+  z-index: 99999;
   
   &.hovering {
     height: 100px;
@@ -29,11 +31,21 @@ main {
   justify-content: center;
   align-items: center;
   flex-direction: column;
+  z-index: 99;
 
-  * {
-    color: #fff;
-    margin: 0;
-    text-transform: uppercase;
+  .wrapper {
+    overflow: hidden;
+
+    > * {
+      color: #fff;
+      margin: 0;
+      text-transform: uppercase;
+      line-height: .73;
+    }
+
+    &--a {
+      margin-top: 15px;
+    }
   }
 
   h1 {
@@ -42,6 +54,7 @@ main {
   }
 
   a {
+    display: block;
     font-size: 14px;
     text-decoration: none;
 
