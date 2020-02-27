@@ -2908,6 +2908,11 @@ glsl-tokenizer@^2.0.0, glsl-tokenizer@^2.0.2:
   dependencies:
     through2 "^0.6.3"
 
+glsl-voronoi-noise@^1.2.2:
+  version "1.2.2"
+  resolved "https://registry.yarnpkg.com/glsl-voronoi-noise/-/glsl-voronoi-noise-1.2.2.tgz#f3113d01ed10594fe060267919029ed0b76ccb69"
+  integrity sha512-8K3VZCQpXg2U2ElUkjqpYh/tVfPz6AQyS2PpZYg3bvN/Zr4ii8Qp77/hyz4vXD/ne/urGw1V3m09LHp6+xw+Yg==
+
 glslify-bundle@^5.1.1:
   version "5.1.1"
   resolved "https://registry.yarnpkg.com/glslify-bundle/-/glslify-bundle-5.1.1.tgz#30d2ddf2e6b935bf44d1299321e3b729782c409a"
