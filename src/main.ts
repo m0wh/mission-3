@@ -23,10 +23,9 @@ const grainFx = new ShaderPass({
   fragmentShader: grainFragmentShader
 })
 
-let terrain
-
 const cameraLookingAt = new THREE.Vector3(mouse.x, 3 - mouse.y, 7)
 
+let terrain
 const world = new World({
   onInit: ({ scene, camera, renderer, composer }) => {
     renderer.toneMapping = THREE.LinearToneMapping
@@ -62,10 +61,12 @@ const world = new World({
   }
 })
 
-world.init()
-
-const tl = gsap.timeline()
+const tl = gsap.timeline({ paused: true })
 tl
+  .to('.enter', 1, { autoAlpha: 0, y: 10 })
   .from('.title', 1, { y: '100%', autoAlpha: 0, delay: 1, ease: 'cubic.out' })
-  .from('canvas', 3, { autoAlpha: 0, delay: 1 })
-  .from('.link', 1, { y: '-100%', autoAlpha: 0, ease: 'cubic.out' }, '-=2')
+  .add(() => world.init())
+  .from('canvas', 5, { autoAlpha: 0, delay: 1 })
+  .from('.link', 1, { y: '-100%', autoAlpha: 0, ease: 'cubic.out' }, '-=3')
+
+document.querySelector('.enter').addEventListener('click', () => tl.play())

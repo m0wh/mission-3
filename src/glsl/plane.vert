@@ -21,8 +21,10 @@ float onoise (vec3 v) {
 }
 
 void main () {
-  float noise = onoise(vec3(position.xy, 0.0)) * 0.2; // Noise Texture
-  float voronoi = voronoi3d(vec3(position.xy / 5.0, 0.0)).r; // Voronoi
+  vec3 pos = position + vec3(0.0, uTime * 3.0, 0.0);
+  
+  float noise = onoise(vec3(pos.xy, 0.0)) * 0.2; // Noise Texture
+  float voronoi = voronoi3d(vec3(pos.xy / 5.0, 0.0)).r; // Voronoi
   float z = (noise + voronoi) * 1.0; // Multiply
 
   vec4 modelViewPosition = modelViewMatrix * vec4(position.xy, z, 1.0);

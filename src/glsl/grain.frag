@@ -11,8 +11,8 @@ void main () {
   vec4 color = texture2D(tDiffuse, vUv);
   vec2 uvRandom = vUv;
   uvRandom.y *= random(vec2(uvRandom.y,amount));
-  color.r += random(uvRandom) * 0.1;
-  color.g += random(uvRandom) * 0.1;
-  color.b += random(uvRandom) * 0.1;
+  color.r += random(uvRandom) * 0.07;
+  color.g += random(uvRandom) * 0.07;
+  color.b += random(uvRandom) * 0.07;
   gl_FragColor = vec4(color);
 }

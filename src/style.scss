@@ -1,8 +1,13 @@
 body {
   margin: 0;
   overflow: hidden;
-  font-family: 'Blender';
   background-color: #050505;
+
+  &, * {
+    font-family: 'Blender';
+    text-transform: uppercase;
+    line-height: 1;
+  }
 }
 
 .cursor {
@@ -18,6 +23,29 @@ body {
     height: 100px;
     width: 100px;
     transition: width 2s cubic-bezier(0,0.9,.1,1), height 2s cubic-bezier(0,0.9,.1,1);
+  }
+}
+
+.landing {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  z-index: 100;
+
+  .enter {
+    font-size: 2vw;
+    height: 5vw;
+    width: 12vw;
+    background-color: #fff;
+    border: none;
+    padding: .25vw 0 0 0;
+    cursor: pointer;
   }
 }
 
@@ -39,23 +67,21 @@ main {
     > * {
       color: #fff;
       margin: 0;
-      text-transform: uppercase;
-      line-height: 1;
     }
 
     &--a {
-      margin-top: 15px;
+      margin-top: 1vw;
     }
   }
 
   h1 {
     font-weight: 100;
-    font-size: 100px;
+    font-size: 6vw;
   }
 
   a {
     display: block;
-    font-size: 14px;
+    font-size: 1vw;
     text-decoration: none;
 
     &:hover {
