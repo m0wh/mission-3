@@ -13,7 +13,7 @@ export default class World {
 
   constructor ({ onInit = (context: any): void => {}, onUpdate = (time: number, context: any): void => {} }) {
     this.renderer.setPixelRatio(window.devicePixelRatio)
-    this.renderer.setSize(window.innerWidth, window.innerHeight)
+    this.resize()
     document.body.appendChild(this.renderer.domElement)
     this.composer.addPass(new RenderPass(this.scene, this.camera))
     this.composer.setSize(window.innerWidth, window.innerHeight)
@@ -24,6 +24,9 @@ export default class World {
 
   init (): void {
     this.startTime = Date.now()
+
+    window.addEventListener('resize', this.resize.bind(this))
+
     this.animate()
     this.onInit({
       scene: this.scene,
@@ -33,7 +36,13 @@ export default class World {
     })
   }
 
-  animate (): void {
+  private resize (): void {
+    this.camera.aspect = window.innerWidth / window.innerHeight
+    this.camera.updateProjectionMatrix()
+    this.renderer.setSize(window.innerWidth, window.innerHeight)
+  }
+
+  private animate (): void {
     const time = Date.now() - this.startTime
     this.onUpdate(time, {
       scene: this.scene,
