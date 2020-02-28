@@ -42012,7 +42012,7 @@ function () {
 
 exports.default = World;
 },{"three":"node_modules/three/build/three.module.js","three/examples/jsm/postprocessing/EffectComposer":"node_modules/three/examples/jsm/postprocessing/EffectComposer.js","three/examples/jsm/postprocessing/RenderPass":"node_modules/three/examples/jsm/postprocessing/RenderPass.js"}],"src/glsl/plane.vert":[function(require,module,exports) {
-module.exports = "#define GLSLIFY 1\n//\n// Description : Array and textureless GLSL 2D/3D/4D simplex\n//               noise functions.\n//      Author : Ian McEwan, Ashima Arts.\n//  Maintainer : ijm\n//     Lastmod : 20110822 (ijm)\n//     License : Copyright (C) 2011 Ashima Arts. All rights reserved.\n//               Distributed under the MIT License. See LICENSE file.\n//               https://github.com/ashima/webgl-noise\n//\n\nvec3 mod289(vec3 x) {\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec4 mod289(vec4 x) {\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec4 permute(vec4 x) {\n     return mod289(((x*34.0)+1.0)*x);\n}\n\nvec4 taylorInvSqrt(vec4 r)\n{\n  return 1.79284291400159 - 0.85373472095314 * r;\n}\n\nfloat snoise(vec3 v)\n  {\n  const vec2  C = vec2(1.0/6.0, 1.0/3.0) ;\n  const vec4  D = vec4(0.0, 0.5, 1.0, 2.0);\n\n// First corner\n  vec3 i  = floor(v + dot(v, C.yyy) );\n  vec3 x0 =   v - i + dot(i, C.xxx) ;\n\n// Other corners\n  vec3 g = step(x0.yzx, x0.xyz);\n  vec3 l = 1.0 - g;\n  vec3 i1 = min( g.xyz, l.zxy );\n  vec3 i2 = max( g.xyz, l.zxy );\n\n  //   x0 = x0 - 0.0 + 0.0 * C.xxx;\n  //   x1 = x0 - i1  + 1.0 * C.xxx;\n  //   x2 = x0 - i2  + 2.0 * C.xxx;\n  //   x3 = x0 - 1.0 + 3.0 * C.xxx;\n  vec3 x1 = x0 - i1 + C.xxx;\n  vec3 x2 = x0 - i2 + C.yyy; // 2.0*C.x = 1/3 = C.y\n  vec3 x3 = x0 - D.yyy;      // -1.0+3.0*C.x = -0.5 = -D.y\n\n// Permutations\n  i = mod289(i);\n  vec4 p = permute( permute( permute(\n             i.z + vec4(0.0, i1.z, i2.z, 1.0 ))\n           + i.y + vec4(0.0, i1.y, i2.y, 1.0 ))\n           + i.x + vec4(0.0, i1.x, i2.x, 1.0 ));\n\n// Gradients: 7x7 points over a square, mapped onto an octahedron.\n// The ring size 17*17 = 289 is close to a multiple of 49 (49*6 = 294)\n  float n_ = 0.142857142857; // 1.0/7.0\n  vec3  ns = n_ * D.wyz - D.xzx;\n\n  vec4 j = p - 49.0 * floor(p * ns.z * ns.z);  //  mod(p,7*7)\n\n  vec4 x_ = floor(j * ns.z);\n  vec4 y_ = floor(j - 7.0 * x_ );    // mod(j,N)\n\n  vec4 x = x_ *ns.x + ns.yyyy;\n  vec4 y = y_ *ns.x + ns.yyyy;\n  vec4 h = 1.0 - abs(x) - abs(y);\n\n  vec4 b0 = vec4( x.xy, y.xy );\n  vec4 b1 = vec4( x.zw, y.zw );\n\n  //vec4 s0 = vec4(lessThan(b0,0.0))*2.0 - 1.0;\n  //vec4 s1 = vec4(lessThan(b1,0.0))*2.0 - 1.0;\n  vec4 s0 = floor(b0)*2.0 + 1.0;\n  vec4 s1 = floor(b1)*2.0 + 1.0;\n  vec4 sh = -step(h, vec4(0.0));\n\n  vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy ;\n  vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww ;\n\n  vec3 p0 = vec3(a0.xy,h.x);\n  vec3 p1 = vec3(a0.zw,h.y);\n  vec3 p2 = vec3(a1.xy,h.z);\n  vec3 p3 = vec3(a1.zw,h.w);\n\n//Normalise gradients\n  vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));\n  p0 *= norm.x;\n  p1 *= norm.y;\n  p2 *= norm.z;\n  p3 *= norm.w;\n\n// Mix final noise value\n  vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);\n  m = m * m;\n  return 42.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1),\n                                dot(p2,x2), dot(p3,x3) ) );\n  }\n\nconst mat2 myt = mat2(.12121212, .13131313, -.13131313, .12121212);\nconst vec2 mys = vec2(1e4, 1e6);\n\nvec2 rhash(vec2 uv) {\n  uv *= myt;\n  uv *= mys;\n  return fract(fract(uv / mys) * uv);\n}\n\nvec3 hash(vec3 p) {\n  return fract(\n      sin(vec3(dot(p, vec3(1.0, 57.0, 113.0)), dot(p, vec3(57.0, 113.0, 1.0)),\n               dot(p, vec3(113.0, 1.0, 57.0)))) *\n      43758.5453);\n}\n\nvec3 voronoi3d(const in vec3 x) {\n  vec3 p = floor(x);\n  vec3 f = fract(x);\n\n  float id = 0.0;\n  vec2 res = vec2(100.0);\n  for (int k = -1; k <= 1; k++) {\n    for (int j = -1; j <= 1; j++) {\n      for (int i = -1; i <= 1; i++) {\n        vec3 b = vec3(float(i), float(j), float(k));\n        vec3 r = vec3(b) - f + hash(p + b);\n        float d = dot(r, r);\n\n        float cond = max(sign(res.x - d), 0.0);\n        float nCond = 1.0 - cond;\n\n        float cond2 = nCond * max(sign(res.y - d), 0.0);\n        float nCond2 = 1.0 - cond2;\n\n        id = (dot(p + b, vec3(1.0, 57.0, 113.0)) * cond) + (id * nCond);\n        res = vec2(d, res.x) * cond + res * nCond;\n\n        res.y = cond2 * d + nCond2 * res.y;\n      }\n    }\n  }\n\n  return vec3(sqrt(res), abs(id));\n}\n\nuniform float uTime;\n\nconst int octaves = 5; // Detail\nfloat onoise (vec3 v) {\n  float total = 0.0;\n  float frequency = 1.0 / 5.0; // Scale\n  float amplitude = 1.0;\n  float maxValue = 0.0;\n\n  for (int i = 0; i < octaves; i++) {\n    total += snoise(v * frequency) * amplitude;\n    maxValue += amplitude;\n    amplitude *= 0.5;\n    frequency *= 2.0;\n  }\n\n  return total / maxValue;\n}\n\nvoid main () {\n  float noise = onoise(vec3(position.xy, 0.0)) * 0.2; // Noise Texture\n  float voronoi = voronoi3d(vec3(position.xy / 5.0, 0.0)).r; // Voronoi\n  float z = (noise + voronoi) * 1.0; // Multiply\n\n  vec4 modelViewPosition = modelViewMatrix * vec4(position.xy, z, 1.0);\n  gl_Position = projectionMatrix * modelViewPosition;\n}\n";
+module.exports = "#define GLSLIFY 1\n//\n// Description : Array and textureless GLSL 2D/3D/4D simplex\n//               noise functions.\n//      Author : Ian McEwan, Ashima Arts.\n//  Maintainer : ijm\n//     Lastmod : 20110822 (ijm)\n//     License : Copyright (C) 2011 Ashima Arts. All rights reserved.\n//               Distributed under the MIT License. See LICENSE file.\n//               https://github.com/ashima/webgl-noise\n//\n\nvec3 mod289(vec3 x) {\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec4 mod289(vec4 x) {\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec4 permute(vec4 x) {\n     return mod289(((x*34.0)+1.0)*x);\n}\n\nvec4 taylorInvSqrt(vec4 r)\n{\n  return 1.79284291400159 - 0.85373472095314 * r;\n}\n\nfloat snoise(vec3 v)\n  {\n  const vec2  C = vec2(1.0/6.0, 1.0/3.0) ;\n  const vec4  D = vec4(0.0, 0.5, 1.0, 2.0);\n\n// First corner\n  vec3 i  = floor(v + dot(v, C.yyy) );\n  vec3 x0 =   v - i + dot(i, C.xxx) ;\n\n// Other corners\n  vec3 g = step(x0.yzx, x0.xyz);\n  vec3 l = 1.0 - g;\n  vec3 i1 = min( g.xyz, l.zxy );\n  vec3 i2 = max( g.xyz, l.zxy );\n\n  //   x0 = x0 - 0.0 + 0.0 * C.xxx;\n  //   x1 = x0 - i1  + 1.0 * C.xxx;\n  //   x2 = x0 - i2  + 2.0 * C.xxx;\n  //   x3 = x0 - 1.0 + 3.0 * C.xxx;\n  vec3 x1 = x0 - i1 + C.xxx;\n  vec3 x2 = x0 - i2 + C.yyy; // 2.0*C.x = 1/3 = C.y\n  vec3 x3 = x0 - D.yyy;      // -1.0+3.0*C.x = -0.5 = -D.y\n\n// Permutations\n  i = mod289(i);\n  vec4 p = permute( permute( permute(\n             i.z + vec4(0.0, i1.z, i2.z, 1.0 ))\n           + i.y + vec4(0.0, i1.y, i2.y, 1.0 ))\n           + i.x + vec4(0.0, i1.x, i2.x, 1.0 ));\n\n// Gradients: 7x7 points over a square, mapped onto an octahedron.\n// The ring size 17*17 = 289 is close to a multiple of 49 (49*6 = 294)\n  float n_ = 0.142857142857; // 1.0/7.0\n  vec3  ns = n_ * D.wyz - D.xzx;\n\n  vec4 j = p - 49.0 * floor(p * ns.z * ns.z);  //  mod(p,7*7)\n\n  vec4 x_ = floor(j * ns.z);\n  vec4 y_ = floor(j - 7.0 * x_ );    // mod(j,N)\n\n  vec4 x = x_ *ns.x + ns.yyyy;\n  vec4 y = y_ *ns.x + ns.yyyy;\n  vec4 h = 1.0 - abs(x) - abs(y);\n\n  vec4 b0 = vec4( x.xy, y.xy );\n  vec4 b1 = vec4( x.zw, y.zw );\n\n  //vec4 s0 = vec4(lessThan(b0,0.0))*2.0 - 1.0;\n  //vec4 s1 = vec4(lessThan(b1,0.0))*2.0 - 1.0;\n  vec4 s0 = floor(b0)*2.0 + 1.0;\n  vec4 s1 = floor(b1)*2.0 + 1.0;\n  vec4 sh = -step(h, vec4(0.0));\n\n  vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy ;\n  vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww ;\n\n  vec3 p0 = vec3(a0.xy,h.x);\n  vec3 p1 = vec3(a0.zw,h.y);\n  vec3 p2 = vec3(a1.xy,h.z);\n  vec3 p3 = vec3(a1.zw,h.w);\n\n//Normalise gradients\n  vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));\n  p0 *= norm.x;\n  p1 *= norm.y;\n  p2 *= norm.z;\n  p3 *= norm.w;\n\n// Mix final noise value\n  vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);\n  m = m * m;\n  return 42.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1),\n                                dot(p2,x2), dot(p3,x3) ) );\n  }\n\nconst mat2 myt = mat2(.12121212, .13131313, -.13131313, .12121212);\nconst vec2 mys = vec2(1e4, 1e6);\n\nvec2 rhash(vec2 uv) {\n  uv *= myt;\n  uv *= mys;\n  return fract(fract(uv / mys) * uv);\n}\n\nvec3 hash(vec3 p) {\n  return fract(\n      sin(vec3(dot(p, vec3(1.0, 57.0, 113.0)), dot(p, vec3(57.0, 113.0, 1.0)),\n               dot(p, vec3(113.0, 1.0, 57.0)))) *\n      43758.5453);\n}\n\nvec3 voronoi3d(const in vec3 x) {\n  vec3 p = floor(x);\n  vec3 f = fract(x);\n\n  float id = 0.0;\n  vec2 res = vec2(100.0);\n  for (int k = -1; k <= 1; k++) {\n    for (int j = -1; j <= 1; j++) {\n      for (int i = -1; i <= 1; i++) {\n        vec3 b = vec3(float(i), float(j), float(k));\n        vec3 r = vec3(b) - f + hash(p + b);\n        float d = dot(r, r);\n\n        float cond = max(sign(res.x - d), 0.0);\n        float nCond = 1.0 - cond;\n\n        float cond2 = nCond * max(sign(res.y - d), 0.0);\n        float nCond2 = 1.0 - cond2;\n\n        id = (dot(p + b, vec3(1.0, 57.0, 113.0)) * cond) + (id * nCond);\n        res = vec2(d, res.x) * cond + res * nCond;\n\n        res.y = cond2 * d + nCond2 * res.y;\n      }\n    }\n  }\n\n  return vec3(sqrt(res), abs(id));\n}\n\nuniform float uTime;\n\nconst int octaves = 5; // Detail\nfloat onoise (vec3 v) {\n  float total = 0.0;\n  float frequency = 1.0 / 5.0; // Scale\n  float amplitude = 1.0;\n  float maxValue = 0.0;\n\n  for (int i = 0; i < octaves; i++) {\n    total += snoise(v * frequency) * amplitude;\n    maxValue += amplitude;\n    amplitude *= 0.5;\n    frequency *= 2.0;\n  }\n\n  return total / maxValue;\n}\n\nvoid main () {\n  vec3 pos = position + vec3(0.0, uTime * 3.0, 0.0);\n  \n  float noise = onoise(vec3(pos.xy, 0.0)) * 0.2; // Noise Texture\n  float voronoi = voronoi3d(vec3(pos.xy / 5.0, 0.0)).r; // Voronoi\n  float z = (noise + voronoi) * 1.0; // Multiply\n\n  vec4 modelViewPosition = modelViewMatrix * vec4(position.xy, z, 1.0);\n  gl_Position = projectionMatrix * modelViewPosition;\n}\n";
 },{}],"src/glsl/plane.frag":[function(require,module,exports) {
 module.exports = "#define GLSLIFY 1\nuniform vec3 uTerrainColor;\nuniform vec3 fogColor;\nuniform float fogDensity;\n\nvoid main() {\n  float depth = gl_FragCoord.z / gl_FragCoord.w;\n\n  const float LOG2 = 1.442695;\n  float fogFactor = exp2(- fogDensity * fogDensity * depth * depth * LOG2);\n  fogFactor = 1.0 - clamp(fogFactor, 0.0, 1.0);\n  \n  gl_FragColor = vec4(uTerrainColor, 1.0);\n  gl_FragColor = mix(gl_FragColor, vec4(fogColor, gl_FragColor.w), fogFactor);\n}\n";
 },{}],"src/ts/terrain.ts":[function(require,module,exports) {
@@ -42104,89 +42104,10 @@ exports.lerp = lerp;
 },{}],"src/glsl/grain.vert":[function(require,module,exports) {
 module.exports = "#define GLSLIFY 1\nvarying vec2 vUv;\n\nvoid main() {\n  vUv = uv;\n  gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );\n}\n";
 },{}],"src/glsl/grain.frag":[function(require,module,exports) {
-module.exports = "#define GLSLIFY 1\nuniform float amount;\nuniform sampler2D tDiffuse;\nvarying vec2 vUv;\n\nfloat random (vec2 p) {\n  vec2 K1 = vec2(23.14069263277926, 2.665144142690225);\n  return fract( cos( dot(p,K1) ) * 12345.6789 );\n}\n\nvoid main () {\n  vec4 color = texture2D(tDiffuse, vUv);\n  vec2 uvRandom = vUv;\n  uvRandom.y *= random(vec2(uvRandom.y,amount));\n  color.r += random(uvRandom) * 0.1;\n  color.g += random(uvRandom) * 0.1;\n  color.b += random(uvRandom) * 0.1;\n  gl_FragColor = vec4(color);\n}\n";
-},{}],"src/ts/Cursor.ts":[function(require,module,exports) {
-"use strict";
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
-
-function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
-
-var __importDefault = this && this.__importDefault || function (mod) {
-  return mod && mod.__esModule ? mod : {
-    "default": mod
-  };
-};
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-var utils_1 = require("./utils");
-
-var gsap_1 = __importDefault(require("gsap"));
-
-var Cursor =
-/*#__PURE__*/
-function () {
-  function Cursor() {
-    var className = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 'cursor';
-    var lerpAmt = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0.1;
-
-    _classCallCheck(this, Cursor);
-
-    this.el = document.createElement('div');
-    this.className = 'cursor';
-    this.lerpAmt = 0.1;
-    this.hovering = false;
-    this.position = {
-      x: (utils_1.mouse.x + 1) * window.innerWidth / 2,
-      y: (utils_1.mouse.y + 1) * window.innerHeight / 2
-    };
-    this.lerpAmt = lerpAmt;
-    this.className = className;
-  }
-
-  _createClass(Cursor, [{
-    key: "init",
-    value: function init() {
-      this.el.style.position = 'fixed';
-      this.el.style.pointerEvents = 'none';
-      this.el.style.transform = 'translate(-50%, -50%)';
-      this.el.classList.add(this.className);
-      document.body.append(this.el);
-      requestAnimationFrame(this.update.bind(this));
-    }
-  }, {
-    key: "update",
-    value: function update() {
-      this.position = {
-        x: utils_1.lerp(this.position.x, (utils_1.mouse.x + 1) * window.innerWidth / 2, this.lerpAmt),
-        y: utils_1.lerp(this.position.y, (utils_1.mouse.y + 1) * window.innerHeight / 2, this.lerpAmt)
-      };
-
-      if (utils_1.mouse.target) {
-        this.hovering = ['a', 'button'].includes(utils_1.mouse.target.tagName.toLowerCase());
-      }
-
-      this.draw();
-      requestAnimationFrame(this.update.bind(this));
-    }
-  }, {
-    key: "draw",
-    value: function draw() {
-      gsap_1.default.set(this.el, this.position);
-      this.el.classList.toggle('hovering', this.hovering);
-    }
-  }]);
-
-  return Cursor;
-}();
-
-exports.default = Cursor;
-},{"./utils":"src/ts/utils.ts","gsap":"node_modules/gsap/index.js"}],"src/main.ts":[function(require,module,exports) {
+module.exports = "#define GLSLIFY 1\nuniform float amount;\nuniform sampler2D tDiffuse;\nvarying vec2 vUv;\n\nfloat random (vec2 p) {\n  vec2 K1 = vec2(23.14069263277926, 2.665144142690225);\n  return fract( cos( dot(p,K1) ) * 12345.6789 );\n}\n\nvoid main () {\n  vec4 color = texture2D(tDiffuse, vUv);\n  vec2 uvRandom = vUv;\n  uvRandom.y *= random(vec2(uvRandom.y,amount));\n  color.r += random(uvRandom) * 0.07;\n  color.g += random(uvRandom) * 0.07;\n  color.b += random(uvRandom) * 0.07;\n  gl_FragColor = vec4(color);\n}\n";
+},{}],"src/assets/audio/0-initializing.mp3":[function(require,module,exports) {
+module.exports = "/0-initializing.6464370d.mp3";
+},{}],"src/main.ts":[function(require,module,exports) {
 "use strict";
 
 var __importStar = this && this.__importStar || function (mod) {
@@ -42227,13 +42148,16 @@ var utils_1 = require("./ts/utils");
 
 var grain_vert_1 = __importDefault(require("./glsl/grain.vert"));
 
-var grain_frag_1 = __importDefault(require("./glsl/grain.frag"));
-
-var Cursor_1 = __importDefault(require("./ts/Cursor")); // Cursor
+var grain_frag_1 = __importDefault(require("./glsl/grain.frag")); // import Cursor from './ts/Cursor'
 
 
-var cursor = new Cursor_1.default('cursor', 0.1);
-cursor.init(); // post-fx
+var _0_initializing_mp3_1 = __importDefault(require("./assets/audio/0-initializing.mp3")); // Sound
+
+
+var music = new Audio(_0_initializing_mp3_1.default); // Cursor
+// const cursor = new Cursor('cursor', 0.1)
+// cursor.init()
+// post-fx
 
 var bloomFx = new UnrealBloomPass_1.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.05, 0.5, 0);
 var fxaa = new ShaderPass_1.ShaderPass(FXAAShader_1.FXAAShader);
@@ -42249,8 +42173,11 @@ var grainFx = new ShaderPass_1.ShaderPass({
   vertexShader: grain_vert_1.default,
   fragmentShader: grain_frag_1.default
 });
-var terrain;
 var cameraLookingAt = new THREE.Vector3(utils_1.mouse.x, 3 - utils_1.mouse.y, 7);
+var tl = gsap_1.default.timeline({
+  paused: true
+});
+var terrain;
 var world = new World_1.default({
   onInit: function onInit(_ref) {
     var scene = _ref.scene,
@@ -42258,16 +42185,45 @@ var world = new World_1.default({
         renderer = _ref.renderer,
         composer = _ref.composer;
     renderer.toneMapping = THREE.LinearToneMapping;
-    scene.background = new THREE.Color(0xc9cdcc);
-    scene.fog = new THREE.FogExp2(0xc9cdcc, 0.07);
     camera.position.y = 1.5;
     camera.position.z = 10;
+    camera.rotation.z = 0;
     camera.lookAt(cameraLookingAt);
+    scene.background = new THREE.Color(0xc9cdcc);
+    scene.fog = new THREE.FogExp2(0xc9cdcc, 0.07);
     terrain = terrain_1.default(scene);
     scene.add(terrain.mesh);
     composer.addPass(bloomFx);
     composer.addPass(fxaa);
     composer.addPass(grainFx);
+    tl.from(scene.fog, 10, {
+      density: 0.3
+    }, 10).from(camera.position, 10, {
+      y: 20,
+      ease: 'cubic.inOut'
+    }, 10).to(scene.fog.color, 1, {
+      r: 1,
+      g: 0.2,
+      b: 0,
+      ease: 'expo.in'
+    }, 41.5).to(scene.background, 1, {
+      r: 1,
+      g: 0.2,
+      b: 0,
+      ease: 'expo.in'
+    }, 41.5).to(scene.fog.color, 4, {
+      r: 201 / 255,
+      g: 205 / 255,
+      b: 204 / 255,
+      ease: 'cubic.inOu'
+    }, 75).to(scene.background, 4, {
+      r: 201 / 255,
+      g: 205 / 255,
+      b: 204 / 255,
+      ease: 'cubic.inOu'
+    }, 75).to(scene.fog, 10, {
+      density: 0.5
+    }, 80);
   },
   onUpdate: function onUpdate(time, _ref2) {
     var camera = _ref2.camera;
@@ -42284,21 +42240,32 @@ var world = new World_1.default({
   }
 });
 world.init();
-var tl = gsap_1.default.timeline();
-tl.from('.title', 1, {
+tl.to('.enter', 1, {
+  autoAlpha: 0,
+  y: 10
+}, 0).set('.landing', {
+  display: 'none'
+}, 1).from('.title', 1, {
   y: '100%',
   autoAlpha: 0,
   delay: 1,
-  ease: 'cubic.out'
-}).from('canvas', 3, {
+  ease: 'expo.out'
+}, 3.5).from('canvas', 10, {
   autoAlpha: 0,
-  delay: 1
-}).from('.link', 1, {
+  ease: 'cubic.inOut'
+}, 5).from('.link', 1, {
   y: '-100%',
   autoAlpha: 0,
-  ease: 'cubic.out'
-}, '-=2');
-},{"three":"node_modules/three/build/three.module.js","three/examples/jsm/postprocessing/ShaderPass":"node_modules/three/examples/jsm/postprocessing/ShaderPass.js","three/examples/jsm/postprocessing/UnrealBloomPass":"node_modules/three/examples/jsm/postprocessing/UnrealBloomPass.js","three/examples/jsm/shaders/FXAAShader":"node_modules/three/examples/jsm/shaders/FXAAShader.js","gsap":"node_modules/gsap/index.js","./ts/World":"src/ts/World.ts","./ts/terrain":"src/ts/terrain.ts","./ts/utils":"src/ts/utils.ts","./glsl/grain.vert":"src/glsl/grain.vert","./glsl/grain.frag":"src/glsl/grain.frag","./ts/Cursor":"src/ts/Cursor.ts"}],"node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
+  ease: 'expo.out'
+}, 20).to('.wrapper > *', 1.2, {
+  color: '#000'
+}, 87);
+document.querySelector('.enter').addEventListener('click', function () {
+  music.currentTime = 2.5;
+  music.play();
+  tl.play();
+});
+},{"three":"node_modules/three/build/three.module.js","three/examples/jsm/postprocessing/ShaderPass":"node_modules/three/examples/jsm/postprocessing/ShaderPass.js","three/examples/jsm/postprocessing/UnrealBloomPass":"node_modules/three/examples/jsm/postprocessing/UnrealBloomPass.js","three/examples/jsm/shaders/FXAAShader":"node_modules/three/examples/jsm/shaders/FXAAShader.js","gsap":"node_modules/gsap/index.js","./ts/World":"src/ts/World.ts","./ts/terrain":"src/ts/terrain.ts","./ts/utils":"src/ts/utils.ts","./glsl/grain.vert":"src/glsl/grain.vert","./glsl/grain.frag":"src/glsl/grain.frag","./assets/audio/0-initializing.mp3":"src/assets/audio/0-initializing.mp3"}],"node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
 var global = arguments[3];
 var OVERLAY_ID = '__parcel__error__overlay__';
 var OldModule = module.bundle.Module;
@@ -42326,7 +42293,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "49747" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "53775" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
