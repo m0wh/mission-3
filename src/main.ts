@@ -5,7 +5,7 @@ import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader'
 import gsap from 'gsap'
 import World from './ts/World'
 import createTerrain from './ts/terrain'
-import { mouse, lerp } from './ts/utils'
+import { mouse, lerp, openFullscreen } from './ts/utils'
 import grainVertexShader from './glsl/grain.vert'
 import grainFragmentShader from './glsl/grain.frag'
 // import Cursor from './ts/Cursor'
@@ -88,6 +88,7 @@ tl
   .to('.wrapper > *', 1.2, { color: '#000' }, 87)
 
 document.querySelector('.enter').addEventListener('click', () => {
+  openFullscreen()
   music.currentTime = 2.5
   music.play()
   tl.play()
