@@ -42101,6 +42101,22 @@ function lerp(start, end, amt) {
 }
 
 exports.lerp = lerp;
+
+function openFullscreen() {
+  var elem = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : document.documentElement;
+
+  if (elem.requestFullscreen) {
+    elem.requestFullscreen();
+  } else if (elem.mozRequestFullScreen) {
+    elem.mozRequestFullScreen();
+  } else if (elem.webkitRequestFullscreen) {
+    elem.webkitRequestFullscreen();
+  } else if (elem.msRequestFullscreen) {
+    elem.msRequestFullscreen();
+  }
+}
+
+exports.openFullscreen = openFullscreen;
 },{}],"src/glsl/grain.vert":[function(require,module,exports) {
 module.exports = "#define GLSLIFY 1\nvarying vec2 vUv;\n\nvoid main() {\n  vUv = uv;\n  gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );\n}\n";
 },{}],"src/glsl/grain.frag":[function(require,module,exports) {
@@ -42261,6 +42277,7 @@ tl.to('.enter', 1, {
   color: '#000'
 }, 87);
 document.querySelector('.enter').addEventListener('click', function () {
+  utils_1.openFullscreen();
   music.currentTime = 2.5;
   music.play();
   tl.play();
@@ -42293,7 +42310,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "53775" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "56229" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
