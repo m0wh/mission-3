@@ -1,7 +1,6 @@
 
-uniform vec3 uTerrainColor;
 varying float z;
 
 void main() {
-  gl_FragColor = vec4(uTerrainColor, 1.0);
+  gl_FragColor = vec4(vec3(0.0), 1.0 - z / 2.0);
 }
