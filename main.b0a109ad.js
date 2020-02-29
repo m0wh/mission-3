@@ -36336,7 +36336,7 @@ exports.default = World;
 },{"three":"node_modules/three/build/three.module.js","three/examples/jsm/controls/OrbitControls":"node_modules/three/examples/jsm/controls/OrbitControls.js"}],"src/glsl/plane.vert":[function(require,module,exports) {
 module.exports = "#define GLSLIFY 1\n//\n// Description : Array and textureless GLSL 2D/3D/4D simplex\n//               noise functions.\n//      Author : Ian McEwan, Ashima Arts.\n//  Maintainer : ijm\n//     Lastmod : 20110822 (ijm)\n//     License : Copyright (C) 2011 Ashima Arts. All rights reserved.\n//               Distributed under the MIT License. See LICENSE file.\n//               https://github.com/ashima/webgl-noise\n//\n\nvec3 mod289(vec3 x) {\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec4 mod289(vec4 x) {\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec4 permute(vec4 x) {\n     return mod289(((x*34.0)+1.0)*x);\n}\n\nvec4 taylorInvSqrt(vec4 r)\n{\n  return 1.79284291400159 - 0.85373472095314 * r;\n}\n\nfloat snoise(vec3 v)\n  {\n  const vec2  C = vec2(1.0/6.0, 1.0/3.0) ;\n  const vec4  D = vec4(0.0, 0.5, 1.0, 2.0);\n\n// First corner\n  vec3 i  = floor(v + dot(v, C.yyy) );\n  vec3 x0 =   v - i + dot(i, C.xxx) ;\n\n// Other corners\n  vec3 g = step(x0.yzx, x0.xyz);\n  vec3 l = 1.0 - g;\n  vec3 i1 = min( g.xyz, l.zxy );\n  vec3 i2 = max( g.xyz, l.zxy );\n\n  //   x0 = x0 - 0.0 + 0.0 * C.xxx;\n  //   x1 = x0 - i1  + 1.0 * C.xxx;\n  //   x2 = x0 - i2  + 2.0 * C.xxx;\n  //   x3 = x0 - 1.0 + 3.0 * C.xxx;\n  vec3 x1 = x0 - i1 + C.xxx;\n  vec3 x2 = x0 - i2 + C.yyy; // 2.0*C.x = 1/3 = C.y\n  vec3 x3 = x0 - D.yyy;      // -1.0+3.0*C.x = -0.5 = -D.y\n\n// Permutations\n  i = mod289(i);\n  vec4 p = permute( permute( permute(\n             i.z + vec4(0.0, i1.z, i2.z, 1.0 ))\n           + i.y + vec4(0.0, i1.y, i2.y, 1.0 ))\n           + i.x + vec4(0.0, i1.x, i2.x, 1.0 ));\n\n// Gradients: 7x7 points over a square, mapped onto an octahedron.\n// The ring size 17*17 = 289 is close to a multiple of 49 (49*6 = 294)\n  float n_ = 0.142857142857; // 1.0/7.0\n  vec3  ns = n_ * D.wyz - D.xzx;\n\n  vec4 j = p - 49.0 * floor(p * ns.z * ns.z);  //  mod(p,7*7)\n\n  vec4 x_ = floor(j * ns.z);\n  vec4 y_ = floor(j - 7.0 * x_ );    // mod(j,N)\n\n  vec4 x = x_ *ns.x + ns.yyyy;\n  vec4 y = y_ *ns.x + ns.yyyy;\n  vec4 h = 1.0 - abs(x) - abs(y);\n\n  vec4 b0 = vec4( x.xy, y.xy );\n  vec4 b1 = vec4( x.zw, y.zw );\n\n  //vec4 s0 = vec4(lessThan(b0,0.0))*2.0 - 1.0;\n  //vec4 s1 = vec4(lessThan(b1,0.0))*2.0 - 1.0;\n  vec4 s0 = floor(b0)*2.0 + 1.0;\n  vec4 s1 = floor(b1)*2.0 + 1.0;\n  vec4 sh = -step(h, vec4(0.0));\n\n  vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy ;\n  vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww ;\n\n  vec3 p0 = vec3(a0.xy,h.x);\n  vec3 p1 = vec3(a0.zw,h.y);\n  vec3 p2 = vec3(a1.xy,h.z);\n  vec3 p3 = vec3(a1.zw,h.w);\n\n//Normalise gradients\n  vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));\n  p0 *= norm.x;\n  p1 *= norm.y;\n  p2 *= norm.z;\n  p3 *= norm.w;\n\n// Mix final noise value\n  vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);\n  m = m * m;\n  return 42.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1),\n                                dot(p2,x2), dot(p3,x3) ) );\n  }\n\nconst mat2 myt = mat2(.12121212, .13131313, -.13131313, .12121212);\nconst vec2 mys = vec2(1e4, 1e6);\n\nvec2 rhash(vec2 uv) {\n  uv *= myt;\n  uv *= mys;\n  return fract(fract(uv / mys) * uv);\n}\n\nvec3 hash(vec3 p) {\n  return fract(\n      sin(vec3(dot(p, vec3(1.0, 57.0, 113.0)), dot(p, vec3(57.0, 113.0, 1.0)),\n               dot(p, vec3(113.0, 1.0, 57.0)))) *\n      43758.5453);\n}\n\nvec3 voronoi3d(const in vec3 x) {\n  vec3 p = floor(x);\n  vec3 f = fract(x);\n\n  float id = 0.0;\n  vec2 res = vec2(100.0);\n  for (int k = -1; k <= 1; k++) {\n    for (int j = -1; j <= 1; j++) {\n      for (int i = -1; i <= 1; i++) {\n        vec3 b = vec3(float(i), float(j), float(k));\n        vec3 r = vec3(b) - f + hash(p + b);\n        float d = dot(r, r);\n\n        float cond = max(sign(res.x - d), 0.0);\n        float nCond = 1.0 - cond;\n\n        float cond2 = nCond * max(sign(res.y - d), 0.0);\n        float nCond2 = 1.0 - cond2;\n\n        id = (dot(p + b, vec3(1.0, 57.0, 113.0)) * cond) + (id * nCond);\n        res = vec2(d, res.x) * cond + res * nCond;\n\n        res.y = cond2 * d + nCond2 * res.y;\n      }\n    }\n  }\n\n  return vec3(sqrt(res), abs(id));\n}\n\nuniform float uTime;\nvarying float z;\n\nconst int octaves = 5; // Detail\nfloat onoise (vec3 v) {\n  float total = 0.0;\n  float frequency = 1.0 / 5.0; // Scale\n  float amplitude = 1.0;\n  float maxValue = 0.0;\n\n  for (int i = 0; i < octaves; i++) {\n    total += snoise(v * frequency) * amplitude;\n    maxValue += amplitude;\n    amplitude *= 0.5;\n    frequency *= 2.0;\n  }\n\n  return total / maxValue;\n}\n\nvoid main () {\n  vec3 pos = position + vec3(0.0, uTime * 3.0, 0.0);\n  \n  float noise = onoise(vec3(pos.xy, 0.0)) * 0.2; // Noise Texture\n  float voronoi = voronoi3d(vec3(pos.xy / 5.0, 0.0)).r; // Voronoi\n  z = (noise + voronoi) * 2.0; // Multiply\n\n  vec4 modelViewPosition = modelViewMatrix * vec4(position.xy, z, 1.0);\n  gl_Position = projectionMatrix * modelViewPosition;\n}\n";
 },{}],"src/glsl/plane.frag":[function(require,module,exports) {
-module.exports = "#define GLSLIFY 1\nuniform vec3 uTerrainColor;\nvarying float z;\n\nvoid main() {\n  gl_FragColor = vec4(uTerrainColor, 1.0);\n}\n";
+module.exports = "#define GLSLIFY 1\nvarying float z;\n\nvoid main() {\n  gl_FragColor = vec4(vec3(0.0), 1.0 - z / 2.0);\n}\n";
 },{}],"src/ts/terrain.ts":[function(require,module,exports) {
 "use strict";
 
@@ -36367,7 +36367,7 @@ var plane_vert_1 = __importDefault(require("../glsl/plane.vert"));
 var plane_frag_1 = __importDefault(require("../glsl/plane.frag"));
 
 function createTerrain(scene) {
-  var plane = new THREE.PlaneGeometry(10, 10, 50, 50);
+  var plane = new THREE.PlaneGeometry(10, 10, 200, 200);
   var geo = new THREE.WireframeGeometry(plane);
   var mat = new THREE.ShaderMaterial({
     vertexShader: plane_vert_1.default,
@@ -36376,9 +36376,6 @@ function createTerrain(scene) {
     uniforms: {
       uTime: {
         value: 0.0
-      },
-      uTerrainColor: {
-        value: new THREE.Color(0x020202)
       }
     }
   });
@@ -36483,7 +36480,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "62214" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "65410" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
