@@ -2,6 +2,7 @@
 #pragma glslify: voronoi3d = require('glsl-voronoi-noise/3d')
 
 uniform float uTime;
+varying float z;
 
 const int octaves = 5; // Detail
 float onoise (vec3 v) {
@@ -25,7 +26,7 @@ void main () {
   
   float noise = onoise(vec3(pos.xy, 0.0)) * 0.2; // Noise Texture
   float voronoi = voronoi3d(vec3(pos.xy / 5.0, 0.0)).r; // Voronoi
-  float z = (noise + voronoi) * 1.0; // Multiply
+  z = (noise + voronoi) * 2.0; // Multiply
 
   vec4 modelViewPosition = modelViewMatrix * vec4(position.xy, z, 1.0);
   gl_Position = projectionMatrix * modelViewPosition;
