@@ -1,32 +1,30 @@
-#pragma glslify: snoise3 = require('glsl-noise/simplex/3d')
-#pragma glslify: voronoi3d = require('glsl-voronoi-noise/3d')
+#pragma glslify: elev = require(./calculateElevation.glsl)
 
 uniform float uTime;
+varying vec3 vNormal;
+varying vec3 vLightFront;
+varying vec3 vIndirectFront;
+varying float fogDepth;
 
-const int octaves = 5; // Detail
-float onoise (vec3 v) {
-  float total = 0.0;
-  float frequency = 1.0 / 5.0; // Scale
-  float amplitude = 1.0;
-  float maxValue = 0.0;
+float tangentFactor = 0.1;
 
-  for (int i = 0; i < octaves; i++) {
-    total += snoise3(v * frequency) * amplitude;
-    maxValue += amplitude;
-    amplitude *= 0.5;
-    frequency *= 2.0;
-  }
-
-  return total / maxValue;
+vec3 orthogonal(vec3 v) {
+  return normalize(abs(v.x) > abs(v.z) ? vec3(-v.y, v.x, 0.0) : vec3(0.0, -v.z, v.y));
 }
 
 void main () {
   vec3 pos = position + vec3(0.0, uTime * 3.0, 0.0);
-  
-  float noise = onoise(vec3(pos.xy, 0.0)) * 0.2; // Noise Texture
-  float voronoi = voronoi3d(vec3(pos.xy / 5.0, 0.0)).r; // Voronoi
-  float z = (noise + voronoi) * 1.0; // Multiply
+  vec3 distortedPosition = elev(pos);
 
-  vec4 modelViewPosition = modelViewMatrix * vec4(position.xy, z, 1.0);
+  vec3 tangent1 = orthogonal(normal);
+  vec3 tangent2 = normalize(cross(normal, tangent1));
+  vec3 nearby1 = pos + tangent1 * tangentFactor;
+  vec3 nearby2 = pos + tangent2 * tangentFactor;
+  vec3 distorted1 = elev(nearby1);
+  vec3 distorted2 = elev(nearby2);
+
+  vec4 modelViewPosition = modelViewMatrix * vec4(position.xy, distortedPosition.z, 1.0);
   gl_Position = projectionMatrix * modelViewPosition;
+
+  vNormal = normalize(cross(distorted1 - distortedPosition, distorted2 - distortedPosition));
 }
