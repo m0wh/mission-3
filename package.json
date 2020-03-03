@@ -6,7 +6,7 @@
   "scripts": {
     "start": "parcel index.html --open",
     "build": "parcel build index.html --public-url .",
-    "predeploy": "yarn build",
+    "predeploy": "yarn build && echo mission-3.space > dist/CNAME",
     "deploy": "gh-pages -d dist"
   },
   "repository": "git@github.com:m0wh/mission-3.git",
